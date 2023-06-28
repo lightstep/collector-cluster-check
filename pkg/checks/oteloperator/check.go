@@ -3,11 +3,13 @@ package oteloperator
 import (
 	"context"
 	"fmt"
-	"github.com/lightstep/collector-cluster-check/pkg/checks"
+
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+
+	"github.com/lightstep/collector-cluster-check/pkg/checks"
 )
 
 const (

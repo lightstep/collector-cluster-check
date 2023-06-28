@@ -18,7 +18,14 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+
 	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/spf13/cobra"
+	"k8s.io/client-go/util/homedir"
+
 	"github.com/lightstep/collector-cluster-check/pkg/checks"
 	"github.com/lightstep/collector-cluster-check/pkg/checks/certmanager"
 	"github.com/lightstep/collector-cluster-check/pkg/checks/kubernetes"
@@ -26,11 +33,6 @@ import (
 	"github.com/lightstep/collector-cluster-check/pkg/checks/oteloperator"
 	"github.com/lightstep/collector-cluster-check/pkg/checks/prometheus"
 	"github.com/lightstep/collector-cluster-check/pkg/dependencies"
-	"github.com/spf13/cobra"
-	"k8s.io/client-go/util/homedir"
-	"os"
-	"path/filepath"
-	"strings"
 )
 
 type checkGroup struct {

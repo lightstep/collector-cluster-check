@@ -3,13 +3,15 @@ package prometheus
 import (
 	"context"
 	"fmt"
-	"github.com/lightstep/collector-cluster-check/pkg/checks"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	fakeExtensions "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
+
+	"github.com/lightstep/collector-cluster-check/pkg/checks"
 )
 
 func TestChecker_Run(t *testing.T) {

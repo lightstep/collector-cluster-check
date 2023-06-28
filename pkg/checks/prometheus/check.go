@@ -2,9 +2,11 @@ package prometheus
 
 import (
 	"context"
-	"github.com/lightstep/collector-cluster-check/pkg/checks"
+
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/lightstep/collector-cluster-check/pkg/checks"
 )
 
 const (

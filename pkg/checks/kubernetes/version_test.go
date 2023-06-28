@@ -3,11 +3,13 @@ package kubernetes
 import (
 	"context"
 	"fmt"
-	"github.com/lightstep/collector-cluster-check/pkg/checks"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
-	"testing"
+
+	"github.com/lightstep/collector-cluster-check/pkg/checks"
 )
 
 func TestVersionChecker_Run(t *testing.T) {

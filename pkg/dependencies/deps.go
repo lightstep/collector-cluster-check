@@ -2,6 +2,7 @@ package dependencies
 
 import (
 	"context"
+
 	"github.com/lightstep/collector-cluster-check/pkg/checks"
 )
 

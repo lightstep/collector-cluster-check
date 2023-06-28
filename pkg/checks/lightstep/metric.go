@@ -3,8 +3,10 @@ package lightstep
 import (
 	"context"
 	"fmt"
-	"github.com/lightstep/collector-cluster-check/pkg/checks"
+
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+
+	"github.com/lightstep/collector-cluster-check/pkg/checks"
 )
 
 const (

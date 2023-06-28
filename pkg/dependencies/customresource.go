@@ -2,9 +2,11 @@ package dependencies
 
 import (
 	"context"
-	"github.com/lightstep/collector-cluster-check/pkg/checks"
+
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/lightstep/collector-cluster-check/pkg/checks"
 )
 
 const (

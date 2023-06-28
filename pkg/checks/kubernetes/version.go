@@ -3,8 +3,10 @@ package kubernetes
 import (
 	"context"
 	"fmt"
-	"github.com/lightstep/collector-cluster-check/pkg/checks"
+
 	"k8s.io/client-go/kubernetes"
+
+	"github.com/lightstep/collector-cluster-check/pkg/checks"
 )
 
 const versionCheck = "Kubernetes Version"
