@@ -1,0 +1,42 @@
+package kubernetes
+
+import (
+	"context"
+	"fmt"
+
+	"k8s.io/client-go/kubernetes"
+
+	"github.com/lightstep/collector-cluster-check/pkg/checks"
+)
+
+const versionCheck = "Kubernetes Version"
+
+type VersionChecker struct {
+	client kubernetes.Interface
+}
+
+func (c VersionChecker) Run(ctx context.Context) checks.CheckerResult {
+	var results []*checks.Check
+	if c.client == nil {
+		return append(results, checks.NewFailedCheck(versionCheck, "", fmt.Errorf("no client set")))
+	}
+	version, err := c.client.Discovery().ServerVersion()
+	if err != nil {
+		return append(results, checks.NewFailedCheck(versionCheck, "", err))
+	}
+	return append(results, checks.NewSuccessfulCheck(versionCheck, version.String()))
+}
+
+func (c VersionChecker) Description() string {
+	return "Checks the version of the Kubernetes server"
+}
+
+func (c VersionChecker) Name() string {
+	return "kubernetes version"
+}
+
+func NewVersionCheck(c *checks.Config) checks.Checker {
+	return &VersionChecker{
+		client: c.KubeClient,
+	}
+}
