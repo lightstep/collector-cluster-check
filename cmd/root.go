@@ -29,13 +29,10 @@ var cfgFile string
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "collector-cluster-check",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "this tool is used to run a variety of checks in your current kube context",
+	Long: `This tool allows you to test various parts of your infrastructure and observability stack.
+The goal is to provide you with confidence that you are able to effectively use the OpenTelemetry Operator,
+create OpenTelemetry Collectors, and send data to your desired destination.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	// Run: func(cmd *cobra.Command, args []string) { },
