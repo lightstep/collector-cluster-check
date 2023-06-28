@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	CreateMetricExporter = "Metric Exporter"
+	createMetricExporter = "Metric Exporter"
 )
 
 var (
@@ -25,9 +25,13 @@ var (
 func NewMeterProvider(ctx context.Context, http bool, token string, kubeconfig string) (*sdkmetric.MeterProvider, *checks.Check) {
 	exp, err := newMetricExporter(ctx, http, token)
 	if err != nil {
-		return nil, checks.NewFailedCheck(CreateMetricExporter, "", err)
+		return nil, checks.NewFailedCheck(createMetricExporter, "", err)
 	}
-	return newMetricProvider(exp), checks.NewSuccessfulCheck(CreateMetricExporter, "initialized")
+	mp, err := newMetricProvider(exp)
+	if err != nil {
+		return nil, checks.NewFailedCheck(createMetricExporter, "", err)
+	}
+	return mp, checks.NewSuccessfulCheck(createMetricExporter, "initialized")
 }
 
 func newMetricExporter(ctx context.Context, http bool, token string) (sdkmetric.Exporter, error) {
@@ -49,7 +53,7 @@ func newMetricExporter(ctx context.Context, http bool, token string) (sdkmetric.
 	}
 }
 
-func newMetricProvider(exp sdkmetric.Exporter) *sdkmetric.MeterProvider {
+func newMetricProvider(exp sdkmetric.Exporter) (*sdkmetric.MeterProvider, error) {
 	res, rErr :=
 		resource.Merge(
 			resource.Default(),
@@ -61,7 +65,7 @@ func newMetricProvider(exp sdkmetric.Exporter) *sdkmetric.MeterProvider {
 		)
 
 	if rErr != nil {
-		panic(rErr)
+		return nil, rErr
 	}
 
 	return sdkmetric.NewMeterProvider(
@@ -73,5 +77,5 @@ func newMetricProvider(exp sdkmetric.Exporter) *sdkmetric.MeterProvider {
 			),
 		),
 		sdkmetric.WithResource(res),
-	)
+	), nil
 }
