@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"fmt"
 	"github.com/lightstep/collector-cluster-check/pkg/checks"
 	"k8s.io/client-go/kubernetes"
 )
@@ -9,12 +10,15 @@ import (
 const versionCheck = "Kubernetes Version"
 
 type VersionChecker struct {
-	client *kubernetes.Clientset
+	client kubernetes.Interface
 }
 
 func (c VersionChecker) Run(ctx context.Context) checks.CheckerResult {
 	var results []*checks.Check
-	version, err := c.client.ServerVersion()
+	if c.client == nil {
+		return append(results, checks.NewFailedCheck(versionCheck, "", fmt.Errorf("no client set")))
+	}
+	version, err := c.client.Discovery().ServerVersion()
 	if err != nil {
 		return append(results, checks.NewFailedCheck(versionCheck, "", err))
 	}

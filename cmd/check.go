@@ -109,7 +109,7 @@ var checkCmd = &cobra.Command{
 				opts = append(opts, runnerOption)
 			}
 			runner := checks.NewRunner(group.checkers, opts...)
-			results = runner.Run()
+			results = runner.Run(cmd.Context())
 			prettyPrintDependenciesResults(depResults)
 			prettyPrint(results)
 		}

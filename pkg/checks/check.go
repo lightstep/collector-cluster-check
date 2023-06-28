@@ -95,9 +95,8 @@ func WithTracerProvider(tp *sdktrace.TracerProvider) RunnerOption {
 	}
 }
 
-func (r *Runner) Run() map[string]CheckerResult {
+func (r *Runner) Run(ctx context.Context) map[string]CheckerResult {
 	allResults := map[string]CheckerResult{}
-	ctx := context.Background()
 	for _, newChecker := range r.checkers {
 		checker := newChecker(r.conf)
 		results := checker.Run(ctx)

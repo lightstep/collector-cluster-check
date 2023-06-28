@@ -11,21 +11,23 @@ import (
 )
 
 const (
-	crdName          = "opentelemetrycollectors.opentelemetry.io"
-	crdCheck         = "Collector CRD exists"
-	operatorPodCheck = "otel operator exists"
+	crdName                  = "opentelemetrycollectors.opentelemetry.io"
+	crdCheck                 = "Collector CRD exists"
+	operatorPodCheck         = "otel operator exists"
+	collectorCRDNotInstalled = "Collector CRD not installed"
+	noPodsInstalled          = "no otel operator pods running"
 )
 
 type Checker struct {
-	client    *kubernetes.Clientset
-	crdClient *apiextensionsclientset.Clientset
+	client    kubernetes.Interface
+	crdClient apiextensionsclientset.Interface
 }
 
 func (c Checker) Run(ctx context.Context) checks.CheckerResult {
 	var results []*checks.Check
 	otelCollectorCrd, err := c.crdClient.ApiextensionsV1().CustomResourceDefinitions().Get(ctx, crdName, metav1.GetOptions{})
 	if err != nil {
-		return append(results, checks.NewFailedCheck(crdCheck, "Collector CRD not installed", err))
+		return append(results, checks.NewFailedCheck(crdCheck, collectorCRDNotInstalled, err))
 	} else {
 		results = append(results, checks.NewSuccessfulCheck(crdCheck, otelCollectorCrd.Name))
 	}
@@ -35,7 +37,7 @@ func (c Checker) Run(ctx context.Context) checks.CheckerResult {
 	if err != nil {
 		return append(results, checks.NewFailedCheck(operatorPodCheck, "", err))
 	} else if len(operatorPodList.Items) == 0 {
-		return append(results, checks.NewFailedCheck(operatorPodCheck, "", fmt.Errorf("no otel operator pods running")))
+		return append(results, checks.NewFailedCheck(operatorPodCheck, "", fmt.Errorf(noPodsInstalled)))
 	} else {
 		podNames := ""
 		for _, item := range operatorPodList.Items {

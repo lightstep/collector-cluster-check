@@ -11,21 +11,23 @@ import (
 )
 
 const (
-	issuerCRD = "issuers.cert-manager.io"
-	crdCheck  = "Issuer CRD exists"
-	podCheck  = "Cert Manager pod is running"
+	issuerCRD               = "issuers.cert-manager.io"
+	crdCheck                = "Issuer CRD exists"
+	podCheck                = "Cert Manager pod is running"
+	certManagerNotInstalled = "cert manager not installed"
+	noPodsInstalled         = "no cert manager pods running"
 )
 
 type Checker struct {
-	client    *kubernetes.Clientset
-	crdClient *apiextensionsclientset.Clientset
+	client    kubernetes.Interface
+	crdClient apiextensionsclientset.Interface
 }
 
 func (c Checker) Run(ctx context.Context) checks.CheckerResult {
 	var results []*checks.Check
 	certManagerCrd, err := c.crdClient.ApiextensionsV1().CustomResourceDefinitions().Get(ctx, issuerCRD, metav1.GetOptions{})
 	if err != nil {
-		return append(results, checks.NewFailedCheck(crdCheck, "cert manager not installed", err))
+		return append(results, checks.NewFailedCheck(crdCheck, certManagerNotInstalled, err))
 	} else {
 		results = append(results, checks.NewSuccessfulCheck(crdCheck, certManagerCrd.Name))
 	}
@@ -35,7 +37,7 @@ func (c Checker) Run(ctx context.Context) checks.CheckerResult {
 	if err != nil {
 		return append(results, checks.NewFailedCheck(podCheck, "", err))
 	} else if len(certManagerPodList.Items) == 0 {
-		return append(results, checks.NewFailedCheck(podCheck, "", fmt.Errorf("no cert manager pods running")))
+		return append(results, checks.NewFailedCheck(podCheck, "", fmt.Errorf(noPodsInstalled)))
 	} else {
 		podNames := ""
 		for _, item := range certManagerPodList.Items {
