@@ -30,6 +30,7 @@ import (
 	"k8s.io/client-go/util/homedir"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type checkGroup struct {
@@ -63,8 +64,23 @@ var (
 
 // checkCmd represents the check command
 var checkCmd = &cobra.Command{
-	Use:   "check",
+	Use:   "check [metrics|tracing|preflight|all]",
 	Short: "runs one of multiple checks, use -h for more",
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) == 0 {
+			return fmt.Errorf("must specify at least one check to run")
+		}
+		var validArgs []string
+		for _, v := range cmd.ValidArgs {
+			validArgs = append(validArgs, strings.Split(v, "\t")[0])
+		}
+		for _, v := range args {
+			if _, ok := availableChecks[v]; !ok {
+				return fmt.Errorf("invalid argument %q for %q", v, cmd.CommandPath())
+			}
+		}
+		return nil
+	},
 	ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		var comps []string
 		if len(args) == 0 {
