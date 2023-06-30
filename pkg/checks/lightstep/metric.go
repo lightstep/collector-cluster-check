@@ -3,6 +3,7 @@ package lightstep
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 
@@ -10,11 +11,12 @@ import (
 )
 
 const (
-	metricCheck     = "Create Metric"
-	metricFlush     = "Flush Metrics"
-	instrumentation = "collector-cluster-check"
-	metricName      = "collector.check.alive"
-	badFlushMessage = "This could mean an incorrect access token was used"
+	metricCheck      = "Create Metric"
+	metricFlush      = "Flush Metrics"
+	instrumentation  = "collector-cluster-check"
+	metricName       = "collector.check.alive"
+	badFlushMessage  = "This could mean an incorrect access token was used"
+	deadlineExceeded = "A connection couldn't be established, check firewall rules"
 )
 
 type MetricChecker struct {
@@ -31,8 +33,9 @@ func (c MetricChecker) Run(ctx context.Context) checks.CheckerResult {
 	}
 	counter.Add(ctx, 1)
 	err = c.mp.ForceFlush(ctx)
-	if err != nil {
-		fmt.Println(err)
+	if err != nil && strings.Contains(err.Error(), "DeadlineExceeded") {
+		return append(results, checks.NewFailedCheck(traceFlush, deadlineExceeded, err))
+	} else if err != nil {
 		return append(results, checks.NewFailedCheck(metricFlush, badFlushMessage, err))
 	}
 	return append(results, checks.NewSuccessfulCheck(metricFlush, "sent counter metric"))

@@ -3,6 +3,7 @@ package lightstep
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 
@@ -27,7 +28,9 @@ func (c TraceChecker) Run(ctx context.Context) checks.CheckerResult {
 	span.End()
 	results = append(results, checks.NewSuccessfulCheck(endTraceCheck, fmt.Sprintf("operation name: %s", operationName)))
 	err := c.tp.ForceFlush(ctx)
-	if err != nil {
+	if err != nil && strings.Contains(err.Error(), "DeadlineExceeded") {
+		return append(results, checks.NewFailedCheck(traceFlush, deadlineExceeded, err))
+	} else if err != nil {
 		return append(results, checks.NewFailedCheck(traceFlush, badFlushMessage, err))
 	}
 	return append(results, checks.NewSuccessfulCheck(traceFlush, "sent Trace"))

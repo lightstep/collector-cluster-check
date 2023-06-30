@@ -28,6 +28,7 @@ import (
 
 	"github.com/lightstep/collector-cluster-check/pkg/checks"
 	"github.com/lightstep/collector-cluster-check/pkg/checks/certmanager"
+	"github.com/lightstep/collector-cluster-check/pkg/checks/dns"
 	"github.com/lightstep/collector-cluster-check/pkg/checks/kubernetes"
 	"github.com/lightstep/collector-cluster-check/pkg/checks/lightstep"
 	"github.com/lightstep/collector-cluster-check/pkg/checks/oteloperator"
@@ -57,9 +58,13 @@ var (
 			dependencies: []dependencies.Initializer{dependencies.KubernetesClientInitializer, dependencies.CustomResourceClientInitializer},
 			checkers:     []checks.NewChecker{kubernetes.NewVersionCheck, prometheus.NewCheck, certmanager.NewCheck, oteloperator.NewCheck},
 		},
+		"dns": {
+			dependencies: []dependencies.Initializer{},
+			checkers:     []checks.NewChecker{dns.NewLookupCheck, dns.NewDialCheck},
+		},
 		"all": {
 			dependencies: []dependencies.Initializer{dependencies.KubernetesClientInitializer, dependencies.CustomResourceClientInitializer, dependencies.MetricInitializer, dependencies.TraceInitializer},
-			checkers:     []checks.NewChecker{kubernetes.NewVersionCheck, prometheus.NewCheck, certmanager.NewCheck, oteloperator.NewCheck, lightstep.NewMetricCheck, lightstep.NewTraceCheck},
+			checkers:     []checks.NewChecker{dns.NewLookupCheck, dns.NewDialCheck, kubernetes.NewVersionCheck, prometheus.NewCheck, certmanager.NewCheck, oteloperator.NewCheck, lightstep.NewMetricCheck, lightstep.NewTraceCheck},
 		},
 	}
 )

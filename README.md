@@ -27,7 +27,7 @@ runs one of multiple checks, use -h for more
 
 ```
 Usage:
-  collector-cluster-check check [metrics|tracing|preflight|all] [flags]
+  collector-cluster-check check [metrics|tracing|preflight|dns|all] [flags]
 
 Flags:
       --accessToken string   access token to send data to Lightstep
