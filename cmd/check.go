@@ -22,14 +22,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/lightstep/collector-cluster-check/pkg/checks/dns"
-
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/util/homedir"
 
 	"github.com/lightstep/collector-cluster-check/pkg/checks"
 	"github.com/lightstep/collector-cluster-check/pkg/checks/certmanager"
+	"github.com/lightstep/collector-cluster-check/pkg/checks/dns"
 	"github.com/lightstep/collector-cluster-check/pkg/checks/kubernetes"
 	"github.com/lightstep/collector-cluster-check/pkg/checks/lightstep"
 	"github.com/lightstep/collector-cluster-check/pkg/checks/oteloperator"
