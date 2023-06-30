@@ -22,6 +22,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/lightstep/collector-cluster-check/pkg/checks/dns"
+
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/util/homedir"
@@ -57,9 +59,13 @@ var (
 			dependencies: []dependencies.Initializer{dependencies.KubernetesClientInitializer, dependencies.CustomResourceClientInitializer},
 			checkers:     []checks.NewChecker{kubernetes.NewVersionCheck, prometheus.NewCheck, certmanager.NewCheck, oteloperator.NewCheck},
 		},
+		"dns": {
+			dependencies: []dependencies.Initializer{},
+			checkers:     []checks.NewChecker{dns.NewLookupCheck, dns.NewDialCheck},
+		},
 		"all": {
 			dependencies: []dependencies.Initializer{dependencies.KubernetesClientInitializer, dependencies.CustomResourceClientInitializer, dependencies.MetricInitializer, dependencies.TraceInitializer},
-			checkers:     []checks.NewChecker{kubernetes.NewVersionCheck, prometheus.NewCheck, certmanager.NewCheck, oteloperator.NewCheck, lightstep.NewMetricCheck, lightstep.NewTraceCheck},
+			checkers:     []checks.NewChecker{dns.NewLookupCheck, dns.NewDialCheck, kubernetes.NewVersionCheck, prometheus.NewCheck, certmanager.NewCheck, oteloperator.NewCheck, lightstep.NewMetricCheck, lightstep.NewTraceCheck},
 		},
 	}
 )
