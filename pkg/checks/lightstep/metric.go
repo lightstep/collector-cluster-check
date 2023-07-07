@@ -34,7 +34,7 @@ func (c MetricChecker) Run(ctx context.Context) checks.CheckerResult {
 	counter.Add(ctx, 1)
 	err = c.mp.ForceFlush(ctx)
 	if err != nil && strings.Contains(err.Error(), "DeadlineExceeded") {
-		return append(results, checks.NewFailedCheck(traceFlush, deadlineExceeded, err))
+		return append(results, checks.NewFailedCheck(metricFlush, deadlineExceeded, err))
 	} else if err != nil {
 		return append(results, checks.NewFailedCheck(metricFlush, badFlushMessage, err))
 	}

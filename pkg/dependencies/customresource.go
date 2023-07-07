@@ -14,13 +14,13 @@ const (
 )
 
 var (
-	CustomResourceClientInitializer = dependency[*apiextensionsclientset.Clientset]{
+	CustomResourceClientInitializer = dependency[apiextensionsclientset.Interface]{
 		dep:     NewCRDClient,
 		applier: checks.WithCustomResourceClient,
 	}
 )
 
-func NewCRDClient(ctx context.Context, http bool, token string, kubeconfig string) (*apiextensionsclientset.Clientset, *checks.Check) {
+func NewCRDClient(ctx context.Context, endpoint string, insecure bool, http bool, token string, kubeconfig string) (apiextensionsclientset.Interface, *checks.Check) {
 	// use the current context in kubeconfig
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {

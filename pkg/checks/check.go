@@ -2,9 +2,12 @@ package checks
 
 import (
 	"context"
-
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/rest"
+
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/kubernetes"
 )
@@ -47,10 +50,13 @@ type Checker interface {
 }
 
 type Config struct {
-	KubeClient           *kubernetes.Clientset
-	CustomResourceClient *apiextensionsclientset.Clientset
+	KubeClient           kubernetes.Interface
+	CustomResourceClient apiextensionsclientset.Interface
+	DynamicClient        dynamic.Interface
 	MeterProvider        *sdkmetric.MeterProvider
 	TracerProvider       *sdktrace.TracerProvider
+	OtelColConfig        *unstructured.Unstructured
+	KubeConf             *rest.Config
 }
 
 type NewChecker func(c *Config) Checker
@@ -72,13 +78,31 @@ func NewRunner(checkers []NewChecker, opts ...RunnerOption) *Runner {
 	return r
 }
 
-func WithKubernetesClient(client *kubernetes.Clientset) RunnerOption {
+func WithKubeConfig(conf *rest.Config) RunnerOption {
+	return func(r *Runner) {
+		r.conf.KubeConf = conf
+	}
+}
+
+func WithDynamicClient(client dynamic.Interface) RunnerOption {
+	return func(r *Runner) {
+		r.conf.DynamicClient = client
+	}
+}
+
+func WithOtelColConfig(conf *unstructured.Unstructured) RunnerOption {
+	return func(r *Runner) {
+		r.conf.OtelColConfig = conf
+	}
+}
+
+func WithKubernetesClient(client kubernetes.Interface) RunnerOption {
 	return func(r *Runner) {
 		r.conf.KubeClient = client
 	}
 }
 
-func WithCustomResourceClient(client *apiextensionsclientset.Clientset) RunnerOption {
+func WithCustomResourceClient(client apiextensionsclientset.Interface) RunnerOption {
 	return func(r *Runner) {
 		r.conf.CustomResourceClient = client
 	}

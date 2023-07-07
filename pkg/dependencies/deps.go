@@ -6,10 +6,10 @@ import (
 	"github.com/lightstep/collector-cluster-check/pkg/checks"
 )
 
-type initFunc[T any] func(ctx context.Context, http bool, token string, kubeconfig string) (T, *checks.Check)
+type initFunc[T any] func(ctx context.Context, endpoint string, insecure bool, http bool, token string, kubeconfig string) (T, *checks.Check)
 
 type Initializer interface {
-	Apply(ctx context.Context, http bool, token string, kubeconfig string) (checks.RunnerOption, *checks.Check)
+	Apply(ctx context.Context, endpoint string, insecure bool, http bool, token string, kubeconfig string) (checks.RunnerOption, *checks.Check)
 }
 
 type dependency[T any] struct {
@@ -17,7 +17,7 @@ type dependency[T any] struct {
 	applier func(o T) checks.RunnerOption
 }
 
-func (d dependency[T]) Apply(ctx context.Context, http bool, token string, kubeconfig string) (checks.RunnerOption, *checks.Check) {
-	dep, initResult := d.dep(ctx, http, token, kubeconfig)
+func (d dependency[T]) Apply(ctx context.Context, endpoint string, insecure bool, http bool, token string, kubeconfig string) (checks.RunnerOption, *checks.Check) {
+	dep, initResult := d.dep(ctx, endpoint, insecure, http, token, kubeconfig)
 	return d.applier(dep), initResult
 }

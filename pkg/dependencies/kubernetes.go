@@ -14,13 +14,13 @@ const (
 )
 
 var (
-	KubernetesClientInitializer = dependency[*kubernetes.Clientset]{
+	KubernetesClientInitializer = dependency[kubernetes.Interface]{
 		dep:     NewKubernetesClient,
 		applier: checks.WithKubernetesClient,
 	}
 )
 
-func NewKubernetesClient(ctx context.Context, http bool, token string, kubeconfig string) (*kubernetes.Clientset, *checks.Check) {
+func NewKubernetesClient(ctx context.Context, endpoint string, insecure bool, http bool, token string, kubeconfig string) (kubernetes.Interface, *checks.Check) {
 	// use the current context in kubeconfig
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {

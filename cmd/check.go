@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/lightstep/collector-cluster-check/pkg/checks/runcrd"
 	"os"
 	"path/filepath"
 	"strings"
@@ -44,7 +45,9 @@ type checkGroup struct {
 var (
 	kubeConfig      string
 	accessToken     string
+	endpoint        string
 	http            bool
+	insecure        bool
 	availableChecks = map[string]checkGroup{
 		"metrics": {
 			dependencies: []dependencies.Initializer{dependencies.MetricInitializer},
@@ -61,6 +64,10 @@ var (
 		"dns": {
 			dependencies: []dependencies.Initializer{},
 			checkers:     []checks.NewChecker{dns.NewLookupCheck, dns.NewDialCheck},
+		},
+		"inflight": {
+			dependencies: []dependencies.Initializer{dependencies.DynamicClientInitializer, dependencies.KubernetesClientInitializer, dependencies.KubeConfigInitializer, dependencies.OtelCollectorConfigInitializer, dependencies.OtelColMetricInitializer, dependencies.OtelColTraceInitializer},
+			checkers:     []checks.NewChecker{runcrd.NewRunCollectorCheck},
 		},
 		"all": {
 			dependencies: []dependencies.Initializer{dependencies.KubernetesClientInitializer, dependencies.CustomResourceClientInitializer, dependencies.MetricInitializer, dependencies.TraceInitializer},
@@ -108,7 +115,7 @@ var checkCmd = &cobra.Command{
 			var results map[string]checks.CheckerResult
 			var opts []checks.RunnerOption
 			for _, d := range group.dependencies {
-				runnerOption, checkResult := d.Apply(cmd.Context(), http, accessToken, kubeConfig)
+				runnerOption, checkResult := d.Apply(cmd.Context(), endpoint, insecure, http, accessToken, kubeConfig)
 				depResults = append(depResults, checkResult)
 				if checkResult.IsFailure() {
 					return
@@ -174,7 +181,9 @@ func init() {
 		checkCmd.PersistentFlags().StringVarP(&kubeConfig, "kubeconfig", "", "", "absolute path to the kubeconfig file")
 	}
 	checkCmd.PersistentFlags().StringVarP(&accessToken, "accessToken", "", os.Getenv("LS_TOKEN"), "access token to send data to Lightstep")
+	checkCmd.PersistentFlags().StringVarP(&endpoint, "endpoint", "", "ingest.lightstep.com:443", "destination for OTLP data")
 	checkCmd.PersistentFlags().BoolVarP(&http, "http", "", false, "should telemetry be sent over http")
+	checkCmd.PersistentFlags().BoolVarP(&insecure, "insecure", "", false, "should telemetry be sent insecurely")
 
 	// Here you will define your flags and configuration settings.
 
