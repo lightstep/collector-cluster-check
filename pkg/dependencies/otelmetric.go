@@ -24,8 +24,8 @@ var (
 	}
 )
 
-func NewMeterProvider(ctx context.Context, http bool, token string, kubeconfig string) (*sdkmetric.MeterProvider, *checks.Check) {
-	exp, err := newMetricExporter(ctx, http, token)
+func NewMeterProvider(ctx context.Context, endpoint string, insecure bool, http bool, token string, kubeconfig string) (*sdkmetric.MeterProvider, *checks.Check) {
+	exp, err := newMetricExporter(ctx, endpoint, insecure, http, token)
 	if err != nil {
 		return nil, checks.NewFailedCheck(createMetricExporter, "", err)
 	}
@@ -36,21 +36,33 @@ func NewMeterProvider(ctx context.Context, http bool, token string, kubeconfig s
 	return mp, checks.NewSuccessfulCheck(createMetricExporter, "initialized")
 }
 
-func newMetricExporter(ctx context.Context, http bool, token string) (sdkmetric.Exporter, error) {
+func newMetricExporter(ctx context.Context, endpoint string, insecure bool, http bool, token string) (sdkmetric.Exporter, error) {
 	var headers = map[string]string{
 		"lightstep-access-token": token,
 	}
 	if http {
-		return otlpmetrichttp.New(
-			ctx,
+		opts := []otlpmetrichttp.Option{
 			otlpmetrichttp.WithHeaders(headers),
 			otlpmetrichttp.WithEndpoint(endpoint),
+		}
+		if insecure {
+			opts = append(opts, otlpmetrichttp.WithInsecure())
+		}
+		return otlpmetrichttp.New(
+			ctx,
+			opts...,
 		)
 	} else {
-		return otlpmetricgrpc.New(
-			ctx,
+		opts := []otlpmetricgrpc.Option{
 			otlpmetricgrpc.WithHeaders(headers),
 			otlpmetricgrpc.WithEndpoint(endpoint),
+		}
+		if insecure {
+			opts = append(opts, otlpmetricgrpc.WithInsecure())
+		}
+		return otlpmetricgrpc.New(
+			ctx,
+			opts...,
 		)
 	}
 }
