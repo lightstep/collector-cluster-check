@@ -34,9 +34,9 @@ func (c CreateKubeConfig) Run(ctx context.Context, deps *steps.Deps) (steps.Opti
 	if err != nil {
 		return steps.Empty, steps.NewFailureResult(err)
 	}
-	return steps.WithKubeConfig(config), steps.NewSuccessfulResult("initialize dynamic client")
+	return steps.WithKubeConfig(config), steps.NewSuccessfulResult("initialize Kube Config")
 }
 
 func (c CreateKubeConfig) Dependencies(config *steps.Config) []steps.Step {
-	return []steps.Step{NewCreateKubeConfigFromConfig(config)}
+	return nil
 }

@@ -146,7 +146,7 @@ var checkCmd = &cobra.Command{
 		for _, c := range args {
 			group := availableChecks[c]
 			results := map[string]steps.Result{}
-			conf := getConfig()
+			conf := GetConfig()
 			deps := steps.NewDependencies()
 			for _, step := range group.steps {
 				for _, dep := range step.Dependencies(conf) {
@@ -168,16 +168,6 @@ var checkCmd = &cobra.Command{
 			prettyPrint(results)
 		}
 	},
-}
-
-func getConfig() *steps.Config {
-	return &steps.Config{
-		Endpoint:   endpoint,
-		Insecure:   insecure,
-		Http:       http,
-		Token:      accessToken,
-		KubeConfig: kubeConfig,
-	}
 }
 
 func prettyPrintDependenciesResults(results []*checks.Check) {
@@ -218,6 +208,16 @@ func prettyPrint(results map[string]steps.Result) {
 	t.SetStyle(table.StyleLight)
 	t.Style().Options.SeparateRows = true
 	t.Render()
+}
+
+func GetConfig() *steps.Config {
+	return &steps.Config{
+		Endpoint:   endpoint,
+		Insecure:   insecure,
+		Http:       http,
+		Token:      accessToken,
+		KubeConfig: kubeConfig,
+	}
 }
 
 func init() {
