@@ -137,6 +137,9 @@ func (c RunCollectorChecker) Run(ctx context.Context) checks.CheckerResult {
 	}
 	results = append(results, checks.NewSuccessfulCheck(portForwardPodCheck, fmt.Sprintf("port forwarded on %d", pfp.LocalPort)))
 
+	// Add a sleep to prevent sending too eagerly
+	time.Sleep(1 * time.Second)
+
 	counter, err := c.meter.Meter(instrumentation).Int64Counter(metricName)
 	if err != nil {
 		return append(results, checks.NewFailedCheck(metricCheck, "", err))
@@ -144,7 +147,7 @@ func (c RunCollectorChecker) Run(ctx context.Context) checks.CheckerResult {
 		results = append(results, checks.NewSuccessfulCheck(metricCheck, fmt.Sprintf("name: %s", metricName)))
 	}
 	counter.Add(ctx, 1)
-	err = c.meter.ForceFlush(ctx)
+	err = c.meter.Shutdown(ctx)
 	if err != nil && strings.Contains(err.Error(), "DeadlineExceeded") {
 		return append(results, checks.NewFailedCheck(metricFlush, deadlineExceeded, err))
 	} else if err != nil {
@@ -156,7 +159,7 @@ func (c RunCollectorChecker) Run(ctx context.Context) checks.CheckerResult {
 	results = append(results, checks.NewSuccessfulCheck(traceCheck, ""))
 	span.End()
 	results = append(results, checks.NewSuccessfulCheck(endTraceCheck, fmt.Sprintf("operation name: %s", operationName)))
-	err = c.tracer.ForceFlush(ctx)
+	err = c.tracer.Shutdown(ctx)
 	if err != nil && strings.Contains(err.Error(), "DeadlineExceeded") {
 		return append(results, checks.NewFailedCheck(traceFlush, deadlineExceeded, err))
 	} else if err != nil {
