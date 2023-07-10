@@ -165,7 +165,7 @@ func (c RunCollectorChecker) Run(ctx context.Context) checks.CheckerResult {
 	} else if err != nil {
 		return append(results, checks.NewFailedCheck(traceFlush, badFlushMessage, err))
 	}
-	results = append(results, checks.NewSuccessfulCheck(traceFlush, "sent Trace"))
+	results = append(results, checks.NewSuccessfulCheck(traceFlush, "sent trace"))
 	pfp.close()
 	pfp, err = c.portForwardedResource(8888, 8888, "pods", apiv1.NamespaceDefault, podList.Items[0].GetName())
 	if err != nil {
@@ -187,7 +187,7 @@ func (c RunCollectorChecker) Run(ctx context.Context) checks.CheckerResult {
 	if err != nil {
 		return append(results, checks.NewFailedCheck(deleteCollectorCheck, "", err))
 	}
-	return append(results, checks.NewSuccessfulCheck(deleteCollectorCheck, fmt.Sprintf("Deleted test collector %s", res.GetName())))
+	return append(results, checks.NewSuccessfulCheck(deleteCollectorCheck, fmt.Sprintf("deleted test collector %s", res.GetName())))
 }
 
 func (c RunCollectorChecker) processMetrics(metrics string) []*checks.Check {
