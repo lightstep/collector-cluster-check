@@ -42,7 +42,7 @@ func TestChecker_Run(t *testing.T) {
 			},
 		},
 		{
-			name: "CRD found no operator",
+			name: "CRD found no otel",
 			fields: fields{
 				client: fake.NewSimpleClientset(),
 				crdClient: fakeExtensions.NewSimpleClientset(&v1.CustomResourceDefinition{

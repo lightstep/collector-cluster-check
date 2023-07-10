@@ -1,14 +1,10 @@
 package steps
 
 import (
-	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
-	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
+	"context"
 )
+
+type Shutdown func(ctx context.Context) error
 
 type Result struct {
 	// successful if the check completed without error
@@ -19,20 +15,75 @@ type Result struct {
 
 	// shouldContinue is whether the check should continue
 	shouldContinue bool
+
+	// message is an optional string that informs something about this check
+	message string
+
+	// shutdown is an optional function that is called at the end of a check's execution
+	shutdown Shutdown
 }
 
-type Config struct {
-	KubeClient           kubernetes.Interface
-	CustomResourceClient apiextensionsclientset.Interface
-	DynamicClient        dynamic.Interface
-	MeterProvider        *sdkmetric.MeterProvider
-	TracerProvider       *sdktrace.TracerProvider
-	OtelColConfig        *unstructured.Unstructured
-	KubeConf             *rest.Config
+func (r Result) Successful() bool {
+	return r.successful
 }
 
-type Option func(c *Config)
-type NewStep func(c *Config) Step
+func (r Result) Err() error {
+	return r.err
+}
+
+func (r Result) ShouldContinue() bool {
+	return r.shouldContinue
+}
+
+func (r Result) Message() string {
+	return r.message
+}
+
+func (r Result) Shutdown() Shutdown {
+	return r.shutdown
+}
+
+func NewSuccessfulResult(message string) Result {
+	return Result{
+		successful:     true,
+		shouldContinue: true,
+		message:        message,
+	}
+}
+
+func NewSuccessfulResultWithShutdown(message string, shutdown Shutdown) Result {
+	return Result{
+		successful:     true,
+		shouldContinue: true,
+		message:        message,
+		shutdown:       shutdown,
+	}
+}
+
+func NewFailureResult(err error) Result {
+	return Result{
+		successful:     false,
+		err:            err,
+		shouldContinue: false,
+	}
+}
+
+func NewAcceptableFailureResult(err error) Result {
+	return Result{
+		successful:     false,
+		err:            err,
+		shouldContinue: true,
+	}
+}
+
+func NewFailureResultWithHelp(err error, help string) Result {
+	return Result{
+		successful:     false,
+		err:            err,
+		message:        help,
+		shouldContinue: false,
+	}
+}
 
 type Step interface {
 	// Name is a single word identifier
@@ -41,8 +92,10 @@ type Step interface {
 	// Description is the optional explanation for what the step does
 	Description() string
 
-	Run() Result
+	// Run can return an option that should be applied to the config object
+	// Result represents whether the run was successful
+	Run(ctx context.Context, deps *Deps) (Option, Result)
 
 	// Dependencies is a list of steps that must be run prior to this step
-	Dependencies() []Step
+	Dependencies(conf *Config) []Step
 }

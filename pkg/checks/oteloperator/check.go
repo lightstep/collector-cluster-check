@@ -15,9 +15,9 @@ import (
 const (
 	crdName                  = "opentelemetrycollectors.opentelemetry.io"
 	crdCheck                 = "Collector CRD exists"
-	operatorPodCheck         = "otel operator exists"
+	operatorPodCheck         = "otel otel exists"
 	collectorCRDNotInstalled = "Collector CRD not installed"
-	noPodsInstalled          = "no otel operator pods running"
+	noPodsInstalled          = "no otel otel pods running"
 )
 
 type Checker struct {
@@ -34,7 +34,7 @@ func (c Checker) Run(ctx context.Context) checks.CheckerResult {
 		results = append(results, checks.NewSuccessfulCheck(crdCheck, otelCollectorCrd.Name))
 	}
 	operatorPodList, err := c.client.CoreV1().Pods("").List(ctx, v1.ListOptions{
-		LabelSelector: "app.kubernetes.io/name=opentelemetry-operator",
+		LabelSelector: "app.kubernetes.io/name=opentelemetry-otel",
 	})
 	if err != nil {
 		return append(results, checks.NewFailedCheck(operatorPodCheck, "", err))
@@ -51,7 +51,7 @@ func (c Checker) Run(ctx context.Context) checks.CheckerResult {
 }
 
 func (c Checker) Description() string {
-	return "Checks that the otel operator is installed and running"
+	return "Checks that the otel otel is installed and running"
 }
 
 func (c Checker) Name() string {

@@ -18,7 +18,15 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/lightstep/collector-cluster-check/pkg/checks/runcrd"
+	"github.com/lightstep/collector-cluster-check/pkg/checks"
+	"github.com/lightstep/collector-cluster-check/pkg/steps"
+	"github.com/lightstep/collector-cluster-check/pkg/steps/certmanager"
+	"github.com/lightstep/collector-cluster-check/pkg/steps/dns"
+	"github.com/lightstep/collector-cluster-check/pkg/steps/kubernetes"
+	"github.com/lightstep/collector-cluster-check/pkg/steps/metrics"
+	"github.com/lightstep/collector-cluster-check/pkg/steps/otel"
+	"github.com/lightstep/collector-cluster-check/pkg/steps/prometheus"
+	"github.com/lightstep/collector-cluster-check/pkg/steps/traces"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,20 +34,18 @@ import (
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/util/homedir"
-
-	"github.com/lightstep/collector-cluster-check/pkg/checks"
-	"github.com/lightstep/collector-cluster-check/pkg/checks/certmanager"
-	"github.com/lightstep/collector-cluster-check/pkg/checks/dns"
-	"github.com/lightstep/collector-cluster-check/pkg/checks/kubernetes"
-	"github.com/lightstep/collector-cluster-check/pkg/checks/lightstep"
-	"github.com/lightstep/collector-cluster-check/pkg/checks/oteloperator"
-	"github.com/lightstep/collector-cluster-check/pkg/checks/prometheus"
-	"github.com/lightstep/collector-cluster-check/pkg/dependencies"
+	//"github.com/lightstep/collector-cluster-check/pkg/checks"
+	//"github.com/lightstep/collector-cluster-check/pkg/checks/certmanager"
+	//"github.com/lightstep/collector-cluster-check/pkg/checks/dns"
+	//"github.com/lightstep/collector-cluster-check/pkg/checks/kubernetes"
+	//"github.com/lightstep/collector-cluster-check/pkg/checks/lightstep"
+	//"github.com/lightstep/collector-cluster-check/pkg/checks/oteloperator"
+	//"github.com/lightstep/collector-cluster-check/pkg/checks/prometheus"
+	//"github.com/lightstep/collector-cluster-check/pkg/dependencies"
 )
 
 type checkGroup struct {
-	dependencies []dependencies.Initializer
-	checkers     []checks.NewChecker
+	steps []steps.Step
 }
 
 var (
@@ -50,29 +56,57 @@ var (
 	insecure        bool
 	availableChecks = map[string]checkGroup{
 		"metrics": {
-			dependencies: []dependencies.Initializer{dependencies.MetricInitializer},
-			checkers:     []checks.NewChecker{lightstep.NewMetricCheck},
+			steps: []steps.Step{
+				metrics.CreateCounter{},
+				metrics.ShutdownMeter{},
+			},
 		},
 		"tracing": {
-			dependencies: []dependencies.Initializer{dependencies.TraceInitializer},
-			checkers:     []checks.NewChecker{lightstep.NewTraceCheck},
+			steps: []steps.Step{
+				traces.StartTrace{},
+				traces.ShutdownTracer{},
+			},
 		},
 		"preflight": {
-			dependencies: []dependencies.Initializer{dependencies.KubernetesClientInitializer, dependencies.CustomResourceClientInitializer},
-			checkers:     []checks.NewChecker{kubernetes.NewVersionCheck, prometheus.NewCheck, certmanager.NewCheck, oteloperator.NewCheck},
+			steps: []steps.Step{
+				kubernetes.Version{},
+				prometheus.CrdExists{},
+				certmanager.CrdExists{},
+				otel.CrdExists{},
+			},
 		},
 		"dns": {
-			dependencies: []dependencies.Initializer{},
-			checkers:     []checks.NewChecker{dns.NewLookupCheck, dns.NewDialCheck},
+			steps: []steps.Step{
+				dns.IPLookup{},
+				dns.Ping{},
+				dns.Dial{},
+			},
 		},
 		"inflight": {
-			dependencies: []dependencies.Initializer{dependencies.DynamicClientInitializer, dependencies.KubernetesClientInitializer, dependencies.KubeConfigInitializer, dependencies.OtelCollectorConfigInitializer, dependencies.OtelColMetricInitializer, dependencies.OtelColTraceInitializer},
-			checkers:     []checks.NewChecker{runcrd.NewRunCollectorCheck},
+			steps: []steps.Step{
+				otel.CrdExists{},
+				otel.CreateCollector{},
+				otel.PodWatcher{},
+				otel.PortForward{Port: 4317},
+				metrics.CreateCounter{},
+				metrics.ShutdownMeter{},
+				traces.StartTrace{},
+				traces.ShutdownTracer{},
+				otel.DeleteCollector{},
+			},
 		},
-		"all": {
-			dependencies: []dependencies.Initializer{dependencies.KubernetesClientInitializer, dependencies.CustomResourceClientInitializer, dependencies.MetricInitializer, dependencies.TraceInitializer},
-			checkers:     []checks.NewChecker{dns.NewLookupCheck, dns.NewDialCheck, kubernetes.NewVersionCheck, prometheus.NewCheck, certmanager.NewCheck, oteloperator.NewCheck, lightstep.NewMetricCheck, lightstep.NewTraceCheck},
-		},
+		//"dns": {
+		//	dependencies: []dependencies.Initializer{},
+		//	checkers:     []checks.NewChecker{dns.NewLookupCheck, dns.NewDialCheck},
+		//},
+		//"inflight": {
+		//	dependencies: []dependencies.Initializer{dependencies.DynamicClientInitializer, dependencies.KubernetesClientInitializer, dependencies.KubeConfigInitializer, dependencies.OtelCollectorConfigInitializer, dependencies.OtelColMetricInitializer, dependencies.OtelColTraceInitializer},
+		//	checkers:     []checks.NewChecker{runcrd.NewRunCollectorCheck},
+		//},
+		//"all": {
+		//	dependencies: []dependencies.Initializer{dependencies.KubernetesClientInitializer, dependencies.CustomResourceClientInitializer, dependencies.MetricInitializer, dependencies.TraceInitializer},
+		//	checkers:     []checks.NewChecker{dns.NewLookupCheck, dns.NewDialCheck, kubernetes.NewVersionCheck, prometheus.NewCheck, certmanager.NewCheck, oteloperator.NewCheck, lightstep.NewMetricCheck, lightstep.NewTraceCheck},
+		//},
 	}
 )
 
@@ -111,23 +145,39 @@ var checkCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		for _, c := range args {
 			group := availableChecks[c]
-			var depResults []*checks.Check
-			var results map[string]checks.CheckerResult
-			var opts []checks.RunnerOption
-			for _, d := range group.dependencies {
-				runnerOption, checkResult := d.Apply(cmd.Context(), endpoint, insecure, http, accessToken, kubeConfig)
-				depResults = append(depResults, checkResult)
-				if checkResult.IsFailure() {
-					return
+			results := map[string]steps.Result{}
+			conf := getConfig()
+			deps := steps.NewDependencies()
+			for _, step := range group.steps {
+				for _, dep := range step.Dependencies(conf) {
+					opt, r := dep.Run(cmd.Context(), deps)
+					results[dep.Name()] = r
+					if !r.Successful() && !r.ShouldContinue() {
+						break
+					}
+					opt(deps)
 				}
-				opts = append(opts, runnerOption)
+				opt, r := step.Run(cmd.Context(), deps)
+				results[step.Name()] = r
+				if !r.Successful() && !r.ShouldContinue() {
+					break
+				}
+				opt(deps)
 			}
-			runner := checks.NewRunner(group.checkers, opts...)
-			results = runner.Run(cmd.Context())
-			prettyPrintDependenciesResults(depResults)
+			//prettyPrintDependenciesResults(depResults)
 			prettyPrint(results)
 		}
 	},
+}
+
+func getConfig() *steps.Config {
+	return &steps.Config{
+		Endpoint:   endpoint,
+		Insecure:   insecure,
+		Http:       http,
+		Token:      accessToken,
+		KubeConfig: kubeConfig,
+	}
 }
 
 func prettyPrintDependenciesResults(results []*checks.Check) {
@@ -150,21 +200,19 @@ func prettyPrintDependenciesResults(results []*checks.Check) {
 	t.Render()
 }
 
-func prettyPrint(results map[string]checks.CheckerResult) {
+func prettyPrint(results map[string]steps.Result) {
 	t := table.NewWriter()
 	rowConfigAutoMerge := table.RowConfig{AutoMerge: true}
-	t.AppendHeader(table.Row{"Checker", "Result", "Check Name", "Message", "Error"})
+	t.AppendHeader(table.Row{"Checker", "Result", "Message", "Error"})
 	t.SetColumnConfigs([]table.ColumnConfig{
 		{Number: 1, AutoMerge: true},
 	})
 	for checker, result := range results {
-		for _, check := range result {
-			prettyResult := "🟩"
-			if !check.IsSuccess() {
-				prettyResult = "🟥"
-			}
-			t.AppendRow(table.Row{checker, prettyResult, check.Name, check.Message, check.Error}, rowConfigAutoMerge)
+		prettyResult := "🟩"
+		if !result.Successful() {
+			prettyResult = "🟥"
 		}
+		t.AppendRow(table.Row{checker, prettyResult, result.Message(), result.Err()}, rowConfigAutoMerge)
 	}
 	t.SetOutputMirror(os.Stdout)
 	t.SetStyle(table.StyleLight)
