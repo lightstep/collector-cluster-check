@@ -2,6 +2,7 @@ package otel
 
 import (
 	"context"
+	"fmt"
 	"github.com/lightstep/collector-cluster-check/pkg/steps"
 	"io"
 	"net/http"
@@ -22,20 +23,21 @@ func (c QueryCollector) Description() string {
 	return "checks if the otel collector CRD exists"
 }
 
-func (c QueryCollector) Run(ctx context.Context, deps *steps.Deps) (steps.Option, steps.Result) {
+func (c QueryCollector) Run(ctx context.Context, deps *steps.Deps) steps.Results {
 	r, err := http.Get("http://localhost:8888/metrics")
 	if err != nil {
-		return steps.Empty, steps.NewFailureResult(err)
+		return steps.NewResults(c, steps.NewFailureResult(err))
 	}
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
-		return steps.Empty, steps.NewFailureResult(err)
+		return steps.NewResults(c, steps.NewFailureResult(err))
 	}
-	return steps.Empty, c.processMetrics(string(data))
+	return c.processMetrics(string(data))
 }
 
-func (c QueryCollector) processMetrics(metrics string) steps.Result {
+func (c QueryCollector) processMetrics(metrics string) steps.Results {
 	// maps from telemetry type to success ratio
+	var toReturn []steps.Result
 	successMap := map[string]int{}
 	failMap := map[string]int{}
 	groups := regexp.MustCompile(`otelcol_exporter_sen[td]_(.*)\{.*([0-9]+)`).FindAllStringSubmatch(metrics, -1)
@@ -43,7 +45,7 @@ func (c QueryCollector) processMetrics(metrics string) steps.Result {
 		name, count := m[1], m[2]
 		i, err := strconv.Atoi(count)
 		if err != nil {
-			return steps.NewAcceptableFailureResult(err)
+			return steps.NewResults(c, steps.NewAcceptableFailureResult(err))
 		}
 		failureGroup := strings.Split(name, "failed_")
 		// looking at a failed metric
@@ -53,17 +55,19 @@ func (c QueryCollector) processMetrics(metrics string) steps.Result {
 			successMap[name] = i
 		}
 	}
-	// TODO: refactor these
-	//for telemetry, count := range successMap {
-	//	if failMap[telemetry] > count {
-	//		toReturn = append(toReturn, checks.NewFailedCheck(queryMetricsCheck, "", fmt.Errorf("collector failed to send %s", telemetry)))
-	//	} else {
-	//		toReturn = append(toReturn, checks.NewSuccessfulCheck(queryMetricsCheck, fmt.Sprintf("sent %d %s", count, telemetry)))
-	//	}
-	//}
-	return steps.NewSuccessfulResult("yes")
+	for telemetry, count := range successMap {
+		if failMap[telemetry] > count {
+			toReturn = append(toReturn, steps.NewFailureResult(fmt.Errorf("collector failed to send %s", telemetry)))
+		} else {
+			toReturn = append(toReturn, steps.NewSuccessfulResult(fmt.Sprintf("sent %d %s", count, telemetry)))
+		}
+	}
+	if len(toReturn) == 0 {
+		toReturn = append(toReturn, steps.NewAcceptableFailureResultWithHelp(nil, "no telemetry metrics found"))
+	}
+	return steps.NewResults(c, toReturn...)
 }
 
-func (c QueryCollector) Dependencies(config *steps.Config) []steps.Step {
-	return []steps.Step{PortForward{Port: 8888}}
+func (c QueryCollector) Dependencies(config *steps.Config) []steps.Dependency {
+	return []steps.Dependency{}
 }

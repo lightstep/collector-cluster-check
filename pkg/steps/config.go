@@ -20,6 +20,7 @@ type Deps struct {
 	TracerProvider       *sdktrace.TracerProvider
 	OtelColConfig        *unstructured.Unstructured
 	KubeConf             *rest.Config
+	PortForward          *PortForwardedResource
 }
 
 func NewDependencies() *Deps {
@@ -37,6 +38,12 @@ type Config struct {
 // Empty is for a step that doesn't change configuration
 func Empty(c *Deps) {
 	return
+}
+
+func WithPortForwardedResource(pfr *PortForwardedResource) Option {
+	return func(c *Deps) {
+		c.PortForward = pfr
+	}
 }
 
 func WithKubeConfig(conf *rest.Config) Option {

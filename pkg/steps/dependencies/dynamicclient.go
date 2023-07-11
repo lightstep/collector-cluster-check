@@ -1,4 +1,4 @@
-package kubernetes
+package dependencies
 
 import (
 	"context"
@@ -18,7 +18,7 @@ func NewCreateDynamicClient(kubeconfig string) *CreateDynamicClient {
 	return &CreateDynamicClient{kubeconfig: kubeconfig}
 }
 
-var _ steps.Step = CreateDynamicClient{}
+var _ steps.Dependency = CreateDynamicClient{}
 
 func (c CreateDynamicClient) Name() string {
 	return "CreateDynamicClient"
@@ -37,6 +37,10 @@ func (c CreateDynamicClient) Run(ctx context.Context, deps *steps.Deps) (steps.O
 	return steps.WithDynamicClient(clientset), steps.NewSuccessfulResult("initialize dynamic client")
 }
 
-func (c CreateDynamicClient) Dependencies(config *steps.Config) []steps.Step {
-	return []steps.Step{NewCreateKubeConfigFromConfig(config)}
+func (c CreateDynamicClient) Dependencies(config *steps.Config) []steps.Dependency {
+	return []steps.Dependency{NewCreateKubeConfigFromConfig(config)}
+}
+
+func (c CreateDynamicClient) Shutdown(ctx context.Context) error {
+	return nil
 }

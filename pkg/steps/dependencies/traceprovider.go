@@ -1,7 +1,8 @@
-package traces
+package dependencies
 
 import (
 	"context"
+	"fmt"
 	"github.com/lightstep/collector-cluster-check/pkg/steps"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -26,10 +27,10 @@ func NewCreateTraceProvider(endpoint string, insecure bool, http bool, token str
 	return CreateTraceProvider{endpoint: endpoint, insecure: insecure, http: http, token: token}
 }
 
-var _ steps.Step = CreateTraceProvider{}
+var _ steps.Dependency = CreateTraceProvider{}
 
 func (c CreateTraceProvider) Name() string {
-	return "Create Trace Provider"
+	return fmt.Sprintf("Create Trace Provider @ %s", c.endpoint)
 }
 
 func (c CreateTraceProvider) Description() string {
@@ -48,7 +49,11 @@ func (c CreateTraceProvider) Run(ctx context.Context, deps *steps.Deps) (steps.O
 	return steps.WithTracerProvider(tp), steps.NewSuccessfulResult("initialized trace provider")
 }
 
-func (c CreateTraceProvider) Dependencies(config *steps.Config) []steps.Step {
+func (c CreateTraceProvider) Dependencies(config *steps.Config) []steps.Dependency {
+	return nil
+}
+
+func (c CreateTraceProvider) Shutdown(ctx context.Context) error {
 	return nil
 }
 

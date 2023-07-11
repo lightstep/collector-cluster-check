@@ -19,24 +19,24 @@ func (c Ping) Description() string {
 	return "Pings the lightstep address"
 }
 
-func (c Ping) Run(ctx context.Context, deps *steps.Deps) (steps.Option, steps.Result) {
+func (c Ping) Run(ctx context.Context, deps *steps.Deps) steps.Results {
 	pinger, err := probing.NewPinger("ingest.lightstep.com")
 	if err != nil {
-		return steps.Empty, steps.NewFailureResult(err)
+		return steps.NewResults(c, steps.NewFailureResult(err))
 	}
 	pinger.Count = 3
 	pinger.Timeout = timeout
 	err = pinger.RunWithContext(ctx)
 	if err != nil {
-		return steps.Empty, steps.NewFailureResult(err)
+		return steps.NewResults(c, steps.NewFailureResult(err))
 	}
 	stats := pinger.Statistics()
 	if stats.PacketLoss > 0 {
-		return steps.Empty, steps.NewFailureResultWithHelp(nil, fmt.Sprintf("%v%% packet loss", stats.PacketLoss))
+		return steps.NewResults(c, steps.NewFailureResultWithHelp(nil, fmt.Sprintf("%v%% packet loss", stats.PacketLoss)))
 	}
-	return steps.Empty, steps.NewSuccessfulResult("pong")
+	return steps.NewResults(c, steps.NewSuccessfulResult("pong"))
 }
 
-func (c Ping) Dependencies(config *steps.Config) []steps.Step {
+func (c Ping) Dependencies(config *steps.Config) []steps.Dependency {
 	return nil
 }

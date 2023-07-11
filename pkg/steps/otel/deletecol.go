@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/lightstep/collector-cluster-check/pkg/steps"
-	"github.com/lightstep/collector-cluster-check/pkg/steps/kubernetes"
+	"github.com/lightstep/collector-cluster-check/pkg/steps/dependencies"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -21,14 +21,14 @@ func (c DeleteCollector) Description() string {
 	return "checks if the cert manager CRD exists"
 }
 
-func (c DeleteCollector) Run(ctx context.Context, deps *steps.Deps) (steps.Option, steps.Result) {
-	err := deps.DynamicClient.Resource(colRes).Namespace(apiv1.NamespaceDefault).Delete(ctx, deps.OtelColConfig.GetName(), metav1.DeleteOptions{})
+func (c DeleteCollector) Run(ctx context.Context, deps *steps.Deps) steps.Results {
+	err := deps.DynamicClient.Resource(steps.ColRes).Namespace(apiv1.NamespaceDefault).Delete(ctx, deps.OtelColConfig.GetName(), metav1.DeleteOptions{})
 	if err != nil {
-		return steps.Empty, steps.NewFailureResult(err)
+		return steps.NewResults(c, steps.NewFailureResult(err))
 	}
-	return steps.Empty, steps.NewSuccessfulResult(fmt.Sprintf("%s has been deleted", deps.OtelColConfig.GetName()))
+	return steps.NewResults(c, steps.NewSuccessfulResult(fmt.Sprintf("%s has been deleted", deps.OtelColConfig.GetName())))
 }
 
-func (c DeleteCollector) Dependencies(config *steps.Config) []steps.Step {
-	return []steps.Step{NewCollectorConfigFromConfig(config), kubernetes.NewCreateDynamicClientFromConfig(config)}
+func (c DeleteCollector) Dependencies(config *steps.Config) []steps.Dependency {
+	return []steps.Dependency{dependencies.NewCollectorConfigFromConfig(config), dependencies.NewCreateDynamicClientFromConfig(config)}
 }

@@ -2,68 +2,65 @@ package steps
 
 import (
 	"context"
-	"fmt"
 )
-
-var _ Step = Check{}
 
 type Check struct {
 	name        string
 	description string
 	steps       []Step
-	conf        *Config
+	depMap      map[string]Dependency
 }
 
-func NewCheck(name string, description string, steps []Step, conf *Config) *Check {
+func NewCheck(name string, description string, steps []Step) *Check {
 	return &Check{
 		name:        name,
 		description: description,
 		steps:       steps,
-		conf:        conf,
+		depMap:      map[string]Dependency{},
 	}
 }
 
-func (c Check) Name() string {
+func (c *Check) Name() string {
 	return c.name
 }
 
-func (c Check) Description() string {
+func (c *Check) Description() string {
 	return c.description
 }
 
-func (c Check) Run(ctx context.Context, deps *Deps) (Option, Result) {
-	results := map[string]Result{}
+func (c *Check) Run(ctx context.Context, deps *Deps, conf *Config) ([]Results, []Results) {
+	var acc []Results
+	var depAcc []Results
 	for _, step := range c.steps {
-		depResults := c.initDeps(ctx, step, deps, c.conf)
-		for key, res := range depResults {
-			results[key] = res
-		}
-		opt, r := step.Run(ctx, deps)
-		results[step.Name()] = r
-		if !r.Successful() && !r.ShouldContinue() {
+		depResults := c.initDeps(ctx, step.Dependencies(conf), deps, conf)
+		depAcc = append(depAcc, depResults...)
+		r := step.Run(ctx, deps)
+		acc = append(acc, r)
+		if r.ShouldStop() {
 			break
 		}
-		opt(deps)
 	}
-	return Empty, NewSuccessfulResult(fmt.Sprint(results))
+	return depAcc, acc
 }
 
-func (c Check) Dependencies(conf *Config) []Step {
+func (c *Check) Dependencies(conf *Config) []Dependency {
 	return nil
 }
 
-func (c Check) initDeps(ctx context.Context, s Step, deps *Deps, conf *Config) map[string]Result {
-	results := map[string]Result{}
-	for _, dep := range s.Dependencies(conf) {
-		depResults := c.initDeps(ctx, dep, deps, conf)
-		for key, res := range depResults {
-			results[key] = res
+func (c *Check) initDeps(ctx context.Context, dependencies []Dependency, deps *Deps, conf *Config) []Results {
+	var results []Results
+	for _, dep := range dependencies {
+		depResults := c.initDeps(ctx, dep.Dependencies(conf), deps, conf)
+		results = append(results, depResults...)
+		if _, ok := c.depMap[dep.Name()]; ok {
+			continue
 		}
 		opt, r := dep.Run(ctx, deps)
-		results[dep.Name()] = r
+		results = append(results, NewResults(dep, r))
 		if !r.Successful() && !r.ShouldContinue() {
 			return results
 		}
+		c.depMap[dep.Name()] = dep
 		opt(deps)
 	}
 	return results

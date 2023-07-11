@@ -1,42 +1,38 @@
-package otel
+package dependencies
 
 import (
 	"context"
 	"fmt"
 	"github.com/lightstep/collector-cluster-check/pkg/steps"
-	"github.com/lightstep/collector-cluster-check/pkg/steps/kubernetes"
 	"io"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
-	"log"
 	"net/http"
 	"os"
 )
 
 type PortForward struct {
-	Port int
+	Port          int
+	LabelSelector string
 }
 
-type PortForwardedResource struct {
-	Name      string
-	LocalPort int
-	close     func()
+var _ steps.Dependency = &PortForward{}
+
+func NewPortForward(port int, labelSelector string) *PortForward {
+	return &PortForward{Port: port, LabelSelector: labelSelector}
 }
 
-var _ steps.Step = PortForward{}
-
-func (p PortForward) Name() string {
-	return "OpenTelemetry Operator Running"
+func (p *PortForward) Name() string {
+	return fmt.Sprintf("PortForward (%s @ %d)", p.LabelSelector, p.Port)
 }
 
-func (p PortForward) Description() string {
-	return "checks if the otel operator is running"
+func (p *PortForward) Description() string {
+	return "Initiates a port forward"
 }
 
-func (p PortForward) portForwardedResource(conf *steps.Deps, resourceName string) (*PortForwardedResource, error) {
-
+func (p *PortForward) portForwardedResource(conf *steps.Deps, resourceName string) (*steps.PortForwardedResource, error) {
 	transport, upgrader, err := spdy.RoundTripperFor(conf.KubeConf)
 	if err != nil {
 		return nil, err
@@ -52,6 +48,7 @@ func (p PortForward) portForwardedResource(conf *steps.Deps, resourceName string
 	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, "POST", url)
 
 	stopChan := make(chan struct{})
+	errChan := make(chan error)
 	readyChan := make(chan struct{})
 
 	portForwarder, err := portforward.New(
@@ -69,31 +66,39 @@ func (p PortForward) portForwardedResource(conf *steps.Deps, resourceName string
 	// ForwardPorts is stopped using stopChan.
 	go func() {
 		if err := portForwarder.ForwardPorts(); err != nil {
-			log.Fatalf("ForwardPorts: %v", err)
+			errChan <- err
 		}
 	}()
 
-	<-readyChan
+	select {
+	case err = <-errChan:
+		close(stopChan)
+		close(readyChan)
+		return nil, err
+	case <-readyChan:
+		// If we haven't failed yet, we're okay...
+		break
+	}
 
 	ports, err := portForwarder.GetPorts()
 	if err != nil {
 		return nil, err
 	}
 
-	return &PortForwardedResource{
+	return &steps.PortForwardedResource{
 		Name:      resourceName,
 		LocalPort: int(ports[0].Local),
-		close:     func() { close(stopChan) },
+		Close:     func() { close(stopChan) },
 	}, nil
 }
 
-func (p PortForward) Run(ctx context.Context, deps *steps.Deps) (steps.Option, steps.Result) {
-	podList, err := deps.DynamicClient.Resource(podRes).Namespace(apiv1.NamespaceDefault).List(ctx, metav1.ListOptions{
+func (p *PortForward) Run(ctx context.Context, deps *steps.Deps) (steps.Option, steps.Result) {
+	podList, err := deps.DynamicClient.Resource(steps.PodRes).Namespace(apiv1.NamespaceDefault).List(ctx, metav1.ListOptions{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
 			APIVersion: "v1",
 		},
-		LabelSelector: "app.kubernetes.io/created-by=collector-cluster-checker",
+		LabelSelector: p.LabelSelector,
 	})
 	if err != nil {
 		return steps.Empty, steps.NewFailureResult(err)
@@ -104,12 +109,13 @@ func (p PortForward) Run(ctx context.Context, deps *steps.Deps) (steps.Option, s
 	if err != nil {
 		return steps.Empty, steps.NewFailureResult(err)
 	}
-	return steps.Empty, steps.NewSuccessfulResultWithShutdown(fmt.Sprintf("port forwarded %d", p.Port), func(ctx context.Context) error {
-		pfp.close()
-		return nil
-	})
+	return steps.WithPortForwardedResource(pfp), steps.NewSuccessfulResult("started port forward")
 }
 
-func (p PortForward) Dependencies(config *steps.Config) []steps.Step {
-	return []steps.Step{kubernetes.NewCreateKubeClientFromConfig(config)}
+func (p *PortForward) Shutdown(ctx context.Context) error {
+	return nil
+}
+
+func (p *PortForward) Dependencies(config *steps.Config) []steps.Dependency {
+	return []steps.Dependency{NewCreateKubeClientFromConfig(config)}
 }

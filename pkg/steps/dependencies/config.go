@@ -1,4 +1,4 @@
-package kubernetes
+package dependencies
 
 import (
 	"context"
@@ -18,7 +18,7 @@ func NewCreateKubeConfig(kubeconfig string) CreateKubeConfig {
 	return CreateKubeConfig{kubeconfig: kubeconfig}
 }
 
-var _ steps.Step = CreateKubeConfig{}
+var _ steps.Dependency = CreateKubeConfig{}
 
 func (c CreateKubeConfig) Name() string {
 	return "CreateKubeConfig"
@@ -37,6 +37,10 @@ func (c CreateKubeConfig) Run(ctx context.Context, deps *steps.Deps) (steps.Opti
 	return steps.WithKubeConfig(config), steps.NewSuccessfulResult("initialize Kube Config")
 }
 
-func (c CreateKubeConfig) Dependencies(config *steps.Config) []steps.Step {
+func (c CreateKubeConfig) Dependencies(config *steps.Config) []steps.Dependency {
+	return nil
+}
+
+func (c CreateKubeConfig) Shutdown(ctx context.Context) error {
 	return nil
 }

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/lightstep/collector-cluster-check/pkg/steps"
-	"github.com/lightstep/collector-cluster-check/pkg/steps/kubernetes"
+	"github.com/lightstep/collector-cluster-check/pkg/steps/dependencies"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
@@ -16,11 +16,11 @@ type PodWatcher struct{}
 var _ steps.Step = PodWatcher{}
 
 func (p PodWatcher) Name() string {
-	return "OpenTelemetry Operator Running"
+	return "PodWatcher"
 }
 
 func (p PodWatcher) Description() string {
-	return "checks if the otel operator is running"
+	return "checks if the collector pod is running"
 }
 
 func (p PodWatcher) waitForPodOrTimeout(ctx context.Context, watcher watch.Interface) error {
@@ -46,7 +46,7 @@ func (p PodWatcher) waitForPodOrTimeout(ctx context.Context, watcher watch.Inter
 	}
 }
 
-func (p PodWatcher) Run(ctx context.Context, deps *steps.Deps) (steps.Option, steps.Result) {
+func (p PodWatcher) Run(ctx context.Context, deps *steps.Deps) steps.Results {
 	w, err := deps.KubeClient.CoreV1().Pods(apiv1.NamespaceDefault).Watch(ctx, metav1.ListOptions{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
@@ -55,15 +55,15 @@ func (p PodWatcher) Run(ctx context.Context, deps *steps.Deps) (steps.Option, st
 		LabelSelector: "app.kubernetes.io/created-by=collector-cluster-checker",
 	})
 	if err != nil {
-		return steps.Empty, steps.NewFailureResult(err)
+		return steps.NewResults(p, steps.NewFailureResult(err))
 	}
 	err = p.waitForPodOrTimeout(ctx, w)
 	if err != nil {
-		return steps.Empty, steps.NewFailureResult(err)
+		return steps.NewResults(p, steps.NewFailureResult(err))
 	}
-	return steps.Empty, steps.NewSuccessfulResult("successfully waited for running pod")
+	return steps.NewResults(p, steps.NewSuccessfulResult("successfully waited for running pod"))
 }
 
-func (p PodWatcher) Dependencies(config *steps.Config) []steps.Step {
-	return []steps.Step{kubernetes.NewCreateKubeClientFromConfig(config)}
+func (p PodWatcher) Dependencies(config *steps.Config) []steps.Dependency {
+	return []steps.Dependency{dependencies.NewCreateKubeClientFromConfig(config)}
 }

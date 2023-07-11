@@ -1,4 +1,4 @@
-package otel
+package dependencies
 
 import (
 	"context"
@@ -20,7 +20,7 @@ func NewCollectorConfig(token string, endpoint string) *CollectorConfig {
 	return &CollectorConfig{token: token, endpoint: endpoint}
 }
 
-var _ steps.Step = CollectorConfig{}
+var _ steps.Dependency = CollectorConfig{}
 var (
 	//go:embed config.yaml
 	collectorConfig string
@@ -66,6 +66,10 @@ func (c CollectorConfig) Run(ctx context.Context, deps *steps.Deps) (steps.Optio
 	return steps.WithOtelColConfig(col), steps.NewSuccessfulResult("retrieved CRD config")
 }
 
-func (c CollectorConfig) Dependencies(config *steps.Config) []steps.Step {
+func (c CollectorConfig) Dependencies(config *steps.Config) []steps.Dependency {
+	return nil
+}
+
+func (c CollectorConfig) Shutdown(ctx context.Context) error {
 	return nil
 }

@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"github.com/lightstep/collector-cluster-check/pkg/steps"
+	"github.com/lightstep/collector-cluster-check/pkg/steps/dependencies"
 )
 
 type Version struct{}
@@ -17,14 +18,14 @@ func (c Version) Description() string {
 	return "check kubernetes version"
 }
 
-func (c Version) Run(ctx context.Context, deps *steps.Deps) (steps.Option, steps.Result) {
+func (c Version) Run(ctx context.Context, deps *steps.Deps) steps.Results {
 	version, err := deps.KubeClient.Discovery().ServerVersion()
 	if err != nil {
-		return steps.Empty, steps.NewFailureResult(err)
+		return steps.NewResults(c, steps.NewFailureResult(err))
 	}
-	return steps.Empty, steps.NewSuccessfulResult(version.String())
+	return steps.NewResults(c, steps.NewSuccessfulResult(version.String()))
 }
 
-func (c Version) Dependencies(config *steps.Config) []steps.Step {
-	return []steps.Step{NewCreateKubeClientFromConfig(config)}
+func (c Version) Dependencies(config *steps.Config) []steps.Dependency {
+	return []steps.Dependency{dependencies.NewCreateKubeClientFromConfig(config)}
 }

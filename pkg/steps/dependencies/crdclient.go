@@ -1,4 +1,4 @@
-package kubernetes
+package dependencies
 
 import (
 	"context"
@@ -18,7 +18,7 @@ func NewCreateCustomResourceClient(kubeconfig string) *CreateCustomResourceClien
 	return &CreateCustomResourceClient{kubeconfig: kubeconfig}
 }
 
-var _ steps.Step = CreateCustomResourceClient{}
+var _ steps.Dependency = CreateCustomResourceClient{}
 
 func (c CreateCustomResourceClient) Name() string {
 	return "CreateCustomResourceClient"
@@ -37,6 +37,10 @@ func (c CreateCustomResourceClient) Run(ctx context.Context, deps *steps.Deps) (
 	return steps.WithCustomResourceClient(clientset), steps.NewSuccessfulResult("initialize CRD client")
 }
 
-func (c CreateCustomResourceClient) Dependencies(config *steps.Config) []steps.Step {
-	return []steps.Step{NewCreateKubeConfigFromConfig(config)}
+func (c CreateCustomResourceClient) Dependencies(config *steps.Config) []steps.Dependency {
+	return []steps.Dependency{NewCreateKubeConfigFromConfig(config)}
+}
+
+func (c CreateCustomResourceClient) Shutdown(ctx context.Context) error {
+	return nil
 }

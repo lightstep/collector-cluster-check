@@ -18,14 +18,11 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/lightstep/collector-cluster-check/pkg/checks"
 	"github.com/lightstep/collector-cluster-check/pkg/steps"
-	"github.com/lightstep/collector-cluster-check/pkg/steps/certmanager"
 	"github.com/lightstep/collector-cluster-check/pkg/steps/dns"
 	"github.com/lightstep/collector-cluster-check/pkg/steps/kubernetes"
 	"github.com/lightstep/collector-cluster-check/pkg/steps/metrics"
 	"github.com/lightstep/collector-cluster-check/pkg/steps/otel"
-	"github.com/lightstep/collector-cluster-check/pkg/steps/prometheus"
 	"github.com/lightstep/collector-cluster-check/pkg/steps/traces"
 	"os"
 	"path/filepath"
@@ -44,76 +41,101 @@ import (
 	//"github.com/lightstep/collector-cluster-check/pkg/dependencies"
 )
 
-type checkGroup struct {
-	steps []steps.Step
-}
-
 var (
 	kubeConfig      string
 	accessToken     string
 	endpoint        string
 	http            bool
 	insecure        bool
-	availableChecks = map[string]checkGroup{
-		"metrics": {
-			steps: []steps.Step{
+	availableChecks = map[string]*steps.Check{
+		"metrics": steps.NewCheck(
+			"metrics",
+			"Initializes a meter, creates a counter, flushes metrics",
+			[]steps.Step{
 				metrics.CreateCounter{},
 				metrics.ShutdownMeter{},
-			},
-		},
-		"tracing": {
-			steps: []steps.Step{
+			}),
+		"tracing": steps.NewCheck(
+			"tracing",
+			"Initializes a trace provider, starts and finishes a trace, flushes the trace",
+			[]steps.Step{
 				traces.StartTrace{},
 				traces.ShutdownTracer{},
-			},
-		},
-		"preflight": {
-			steps: []steps.Step{
+			}),
+		"preflight": steps.NewCheck(
+			"preflight",
+			"Runs preflight checks to ensure that a collector CRD can be created",
+			[]steps.Step{
 				kubernetes.Version{},
-				prometheus.CrdExists{},
-				certmanager.CrdExists{},
-				otel.CrdExists{},
-			},
-		},
-		"dns": {
-			steps: []steps.Step{
+				kubernetes.NewCrdExists(steps.CertManagerCrdName),
+				kubernetes.NewCrdExists(steps.OtelCrdName),
+				kubernetes.NewCrdExists(steps.ServiceMonitorCrdName),
+				kubernetes.NewPodRunning(steps.OtelOperatorSelector),
+				kubernetes.NewPodRunning(steps.CertManagerSelector),
+			}),
+		"dns": steps.NewCheck(
+			"dns",
+			"Runs basic DNS checks to verify a connection to Lightstep from your local machine",
+			[]steps.Step{
 				dns.IPLookup{},
 				dns.Ping{},
 				dns.Dial{},
-			},
-		},
-		"inflight": {
-			steps: []steps.Step{
-				otel.CrdExists{},
+			}),
+		"inflight": steps.NewCheck(
+			"inflight",
+			"Creates a collector, sends telemetry, queries that the telemetry was sent successfully to Lightstep",
+			[]steps.Step{
+				kubernetes.NewCrdExists(steps.OtelCrdName),
 				otel.CreateCollector{},
 				otel.PodWatcher{},
-				otel.PortForward{Port: 4317},
+				kubernetes.StartPortForward{Port: 4317, LabelSelector: steps.LabelSelector},
+				metrics.NewCreateCounter("localhost:4317", true),
+				metrics.ShutdownMeter{},
+				traces.NewStartTrace("localhost:4317", true),
+				traces.ShutdownTracer{},
+				kubernetes.FinishPortForward{Port: 4317, LabelSelector: steps.LabelSelector},
+				kubernetes.StartPortForward{Port: 8888, LabelSelector: steps.LabelSelector},
+				otel.QueryCollector{},
+				kubernetes.FinishPortForward{Port: 8888, LabelSelector: steps.LabelSelector},
+				otel.DeleteCollector{},
+			}),
+		"all": steps.NewCheck(
+			"all",
+			"Runs every available step",
+			[]steps.Step{
+				kubernetes.Version{},
+				kubernetes.NewCrdExists(steps.CertManagerCrdName),
+				kubernetes.NewCrdExists(steps.OtelCrdName),
+				kubernetes.NewCrdExists(steps.ServiceMonitorCrdName),
+				kubernetes.NewPodRunning(steps.OtelOperatorSelector),
+				kubernetes.NewPodRunning(steps.CertManagerSelector),
 				metrics.CreateCounter{},
 				metrics.ShutdownMeter{},
 				traces.StartTrace{},
 				traces.ShutdownTracer{},
+				dns.IPLookup{},
+				dns.Ping{},
+				dns.Dial{},
+				otel.CreateCollector{},
+				otel.PodWatcher{},
+				kubernetes.StartPortForward{Port: 4317, LabelSelector: steps.LabelSelector},
+				metrics.NewCreateCounter("localhost:4317", true),
+				metrics.ShutdownMeter{},
+				traces.NewStartTrace("localhost:4317", true),
+				traces.ShutdownTracer{},
+				kubernetes.FinishPortForward{Port: 4317, LabelSelector: steps.LabelSelector},
+				kubernetes.StartPortForward{Port: 8888, LabelSelector: steps.LabelSelector},
+				otel.QueryCollector{},
+				kubernetes.FinishPortForward{Port: 8888, LabelSelector: steps.LabelSelector},
 				otel.DeleteCollector{},
-			},
-		},
-		//"dns": {
-		//	dependencies: []dependencies.Initializer{},
-		//	checkers:     []checks.NewChecker{dns.NewLookupCheck, dns.NewDialCheck},
-		//},
-		//"inflight": {
-		//	dependencies: []dependencies.Initializer{dependencies.DynamicClientInitializer, dependencies.KubernetesClientInitializer, dependencies.KubeConfigInitializer, dependencies.OtelCollectorConfigInitializer, dependencies.OtelColMetricInitializer, dependencies.OtelColTraceInitializer},
-		//	checkers:     []checks.NewChecker{runcrd.NewRunCollectorCheck},
-		//},
-		//"all": {
-		//	dependencies: []dependencies.Initializer{dependencies.KubernetesClientInitializer, dependencies.CustomResourceClientInitializer, dependencies.MetricInitializer, dependencies.TraceInitializer},
-		//	checkers:     []checks.NewChecker{dns.NewLookupCheck, dns.NewDialCheck, kubernetes.NewVersionCheck, prometheus.NewCheck, certmanager.NewCheck, oteloperator.NewCheck, lightstep.NewMetricCheck, lightstep.NewTraceCheck},
-		//},
+			}),
 	}
 )
 
 // checkCmd represents the check command
 var checkCmd = &cobra.Command{
-	Use:   "check [metrics|tracing|preflight|all]",
-	Short: "runs one of multiple checks, use -h for more",
+	Use:   "check [metrics|tracing|preflight|inflight|all]",
+	Short: "Check can run one of multiple checks, use -h for more",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
 			return fmt.Errorf("must specify at least one check to run")
@@ -145,44 +167,30 @@ var checkCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		for _, c := range args {
 			group := availableChecks[c]
-			results := map[string]steps.Result{}
 			conf := GetConfig()
 			deps := steps.NewDependencies()
-			for _, step := range group.steps {
-				for _, dep := range step.Dependencies(conf) {
-					opt, r := dep.Run(cmd.Context(), deps)
-					results[dep.Name()] = r
-					if !r.Successful() && !r.ShouldContinue() {
-						break
-					}
-					opt(deps)
-				}
-				opt, r := step.Run(cmd.Context(), deps)
-				results[step.Name()] = r
-				if !r.Successful() && !r.ShouldContinue() {
-					break
-				}
-				opt(deps)
-			}
-			//prettyPrintDependenciesResults(depResults)
-			prettyPrint(results)
+			depResults, checkResults := group.Run(cmd.Context(), deps, conf)
+			prettyPrintDependenciesResults(depResults)
+			prettyPrint(checkResults)
 		}
 	},
 }
 
-func prettyPrintDependenciesResults(results []*checks.Check) {
+func prettyPrintDependenciesResults(checkResults []steps.Results) {
 	t := table.NewWriter()
 	rowConfigAutoMerge := table.RowConfig{AutoMerge: true}
 	t.AppendHeader(table.Row{"dependency", "Result", "Message", "Error"})
 	t.SetColumnConfigs([]table.ColumnConfig{
 		{Number: 1, AutoMerge: true},
 	})
-	for _, check := range results {
-		prettyResult := "🟩"
-		if !check.IsSuccess() {
-			prettyResult = "🟥"
+	for _, results := range checkResults {
+		for _, result := range results.Steps() {
+			prettyResult := "🟩"
+			if !result.Successful() {
+				prettyResult = "🟥"
+			}
+			t.AppendRow(table.Row{results.StepName(), prettyResult, result.Message(), result.Err()}, rowConfigAutoMerge)
 		}
-		t.AppendRow(table.Row{check.Name, prettyResult, check.Message, check.Error}, rowConfigAutoMerge)
 	}
 	t.SetOutputMirror(os.Stdout)
 	t.SetStyle(table.StyleLight)
@@ -190,19 +198,21 @@ func prettyPrintDependenciesResults(results []*checks.Check) {
 	t.Render()
 }
 
-func prettyPrint(results map[string]steps.Result) {
+func prettyPrint(checkResults []steps.Results) {
 	t := table.NewWriter()
 	rowConfigAutoMerge := table.RowConfig{AutoMerge: true}
 	t.AppendHeader(table.Row{"Checker", "Result", "Message", "Error"})
 	t.SetColumnConfigs([]table.ColumnConfig{
 		{Number: 1, AutoMerge: true},
 	})
-	for checker, result := range results {
-		prettyResult := "🟩"
-		if !result.Successful() {
-			prettyResult = "🟥"
+	for _, results := range checkResults {
+		for _, result := range results.Steps() {
+			prettyResult := "🟩"
+			if !result.Successful() {
+				prettyResult = "🟥"
+			}
+			t.AppendRow(table.Row{results.StepName(), prettyResult, result.Message(), result.Err()}, rowConfigAutoMerge)
 		}
-		t.AppendRow(table.Row{checker, prettyResult, result.Message(), result.Err()}, rowConfigAutoMerge)
 	}
 	t.SetOutputMirror(os.Stdout)
 	t.SetStyle(table.StyleLight)
@@ -232,6 +242,25 @@ func init() {
 	checkCmd.PersistentFlags().StringVarP(&endpoint, "endpoint", "", "ingest.lightstep.com:443", "destination for OTLP data")
 	checkCmd.PersistentFlags().BoolVarP(&http, "http", "", false, "should telemetry be sent over http")
 	checkCmd.PersistentFlags().BoolVarP(&insecure, "insecure", "", false, "should telemetry be sent insecurely")
+	checkCmd.SetHelpFunc(func(command *cobra.Command, i []string) {
+		// If help was called only on the base command
+		command.Println(checkCmd.UsageString())
+		if len(i) == 2 {
+			command.Println(command.Short)
+			return
+		} else if len(i) == 3 {
+			// We expect the check name to be at the first index
+			name := i[1]
+			check, ok := availableChecks[name]
+			if !ok {
+				command.Println(fmt.Sprintf("command %s not found", name))
+				command.Println(command.Short)
+				return
+			}
+			command.Println(fmt.Sprintf("----%s check description----", check.Name()))
+			command.Println(check.Description())
+		}
+	})
 
 	// Here you will define your flags and configuration settings.
 

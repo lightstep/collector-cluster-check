@@ -1,7 +1,8 @@
-package metrics
+package dependencies
 
 import (
 	"context"
+	"fmt"
 	"github.com/lightstep/collector-cluster-check/pkg/steps"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
@@ -26,10 +27,10 @@ func NewCreateMeterProvider(endpoint string, insecure bool, http bool, token str
 	return CreateMeterProvider{endpoint: endpoint, insecure: insecure, http: http, token: token}
 }
 
-var _ steps.Step = CreateMeterProvider{}
+var _ steps.Dependency = CreateMeterProvider{}
 
 func (c CreateMeterProvider) Name() string {
-	return "Create Meter Provider"
+	return fmt.Sprintf("Create Meter Provider @ %s", c.endpoint)
 }
 
 func (c CreateMeterProvider) Description() string {
@@ -48,7 +49,11 @@ func (c CreateMeterProvider) Run(ctx context.Context, deps *steps.Deps) (steps.O
 	return steps.WithMeterProvider(mp), steps.NewSuccessfulResult("initialized meter provider")
 }
 
-func (c CreateMeterProvider) Dependencies(config *steps.Config) []steps.Step {
+func (c CreateMeterProvider) Dependencies(config *steps.Config) []steps.Dependency {
+	return nil
+}
+
+func (c CreateMeterProvider) Shutdown(ctx context.Context) error {
 	return nil
 }
 
