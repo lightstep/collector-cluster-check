@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+
 	"github.com/lightstep/collector-cluster-check/pkg/steps"
 	"github.com/lightstep/collector-cluster-check/pkg/steps/dependencies"
 )

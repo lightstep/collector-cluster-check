@@ -3,8 +3,10 @@ package dependencies
 import (
 	"context"
 	_ "embed"
-	"github.com/lightstep/collector-cluster-check/pkg/steps"
+
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
+	"github.com/lightstep/collector-cluster-check/pkg/steps"
 )
 
 type CollectorConfig struct {

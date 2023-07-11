@@ -2,8 +2,10 @@ package dependencies
 
 import (
 	"context"
-	"github.com/lightstep/collector-cluster-check/pkg/steps"
+
 	"k8s.io/client-go/kubernetes"
+
+	"github.com/lightstep/collector-cluster-check/pkg/steps"
 )
 
 type CreateKubeClient struct {

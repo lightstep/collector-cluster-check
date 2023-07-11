@@ -3,12 +3,14 @@ package otel
 import (
 	"context"
 	"fmt"
-	"github.com/lightstep/collector-cluster-check/pkg/steps"
-	"github.com/lightstep/collector-cluster-check/pkg/steps/dependencies"
+	"time"
+
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
-	"time"
+
+	"github.com/lightstep/collector-cluster-check/pkg/steps"
+	"github.com/lightstep/collector-cluster-check/pkg/steps/dependencies"
 )
 
 type PodWatcher struct{}

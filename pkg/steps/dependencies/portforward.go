@@ -3,14 +3,16 @@ package dependencies
 import (
 	"context"
 	"fmt"
-	"github.com/lightstep/collector-cluster-check/pkg/steps"
 	"io"
+	"net/http"
+	"os"
+
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
-	"net/http"
-	"os"
+
+	"github.com/lightstep/collector-cluster-check/pkg/steps"
 )
 
 type PortForward struct {

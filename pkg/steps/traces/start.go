@@ -2,6 +2,7 @@ package traces
 
 import (
 	"context"
+
 	"github.com/lightstep/collector-cluster-check/pkg/steps"
 	"github.com/lightstep/collector-cluster-check/pkg/steps/dependencies"
 )

@@ -2,9 +2,11 @@ package kubernetes
 
 import (
 	"context"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/lightstep/collector-cluster-check/pkg/steps"
 	"github.com/lightstep/collector-cluster-check/pkg/steps/dependencies"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type CrdExists struct {

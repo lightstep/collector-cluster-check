@@ -18,12 +18,6 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/lightstep/collector-cluster-check/pkg/steps"
-	"github.com/lightstep/collector-cluster-check/pkg/steps/dns"
-	"github.com/lightstep/collector-cluster-check/pkg/steps/kubernetes"
-	"github.com/lightstep/collector-cluster-check/pkg/steps/metrics"
-	"github.com/lightstep/collector-cluster-check/pkg/steps/otel"
-	"github.com/lightstep/collector-cluster-check/pkg/steps/traces"
 	"os"
 	"path/filepath"
 	"strings"
@@ -31,14 +25,13 @@ import (
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/util/homedir"
-	//"github.com/lightstep/collector-cluster-check/pkg/checks"
-	//"github.com/lightstep/collector-cluster-check/pkg/checks/certmanager"
-	//"github.com/lightstep/collector-cluster-check/pkg/checks/dns"
-	//"github.com/lightstep/collector-cluster-check/pkg/checks/kubernetes"
-	//"github.com/lightstep/collector-cluster-check/pkg/checks/lightstep"
-	//"github.com/lightstep/collector-cluster-check/pkg/checks/oteloperator"
-	//"github.com/lightstep/collector-cluster-check/pkg/checks/prometheus"
-	//"github.com/lightstep/collector-cluster-check/pkg/dependencies"
+
+	"github.com/lightstep/collector-cluster-check/pkg/steps"
+	"github.com/lightstep/collector-cluster-check/pkg/steps/dns"
+	"github.com/lightstep/collector-cluster-check/pkg/steps/kubernetes"
+	"github.com/lightstep/collector-cluster-check/pkg/steps/metrics"
+	"github.com/lightstep/collector-cluster-check/pkg/steps/otel"
+	"github.com/lightstep/collector-cluster-check/pkg/steps/traces"
 )
 
 var (

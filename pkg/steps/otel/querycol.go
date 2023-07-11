@@ -3,12 +3,13 @@ package otel
 import (
 	"context"
 	"fmt"
-	"github.com/lightstep/collector-cluster-check/pkg/steps"
 	"io"
 	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/lightstep/collector-cluster-check/pkg/steps"
 )
 
 type QueryCollector struct{}

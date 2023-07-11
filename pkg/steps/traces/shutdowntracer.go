@@ -2,9 +2,10 @@ package traces
 
 import (
 	"context"
+	"strings"
+
 	"github.com/lightstep/collector-cluster-check/pkg/steps"
 	"github.com/lightstep/collector-cluster-check/pkg/steps/dependencies"
-	"strings"
 )
 
 type ShutdownTracer struct{}

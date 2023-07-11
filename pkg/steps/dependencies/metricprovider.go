@@ -3,13 +3,15 @@ package dependencies
 import (
 	"context"
 	"fmt"
-	"github.com/lightstep/collector-cluster-check/pkg/steps"
+	"time"
+
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
-	"time"
+
+	"github.com/lightstep/collector-cluster-check/pkg/steps"
 )
 
 type CreateMeterProvider struct {

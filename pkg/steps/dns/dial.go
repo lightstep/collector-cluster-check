@@ -3,9 +3,10 @@ package dns
 import (
 	"context"
 	"fmt"
-	"github.com/lightstep/collector-cluster-check/pkg/steps"
 	"net"
 	"time"
+
+	"github.com/lightstep/collector-cluster-check/pkg/steps"
 )
 
 type Dial struct{}

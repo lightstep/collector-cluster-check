@@ -2,8 +2,10 @@ package dependencies
 
 import (
 	"context"
-	"github.com/lightstep/collector-cluster-check/pkg/steps"
+
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+
+	"github.com/lightstep/collector-cluster-check/pkg/steps"
 )
 
 type CreateCustomResourceClient struct {

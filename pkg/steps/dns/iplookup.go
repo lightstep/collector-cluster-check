@@ -3,8 +3,9 @@ package dns
 import (
 	"context"
 	"fmt"
-	"github.com/lightstep/collector-cluster-check/pkg/steps"
 	"net"
+
+	"github.com/lightstep/collector-cluster-check/pkg/steps"
 )
 
 type IPLookup struct{}

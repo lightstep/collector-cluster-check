@@ -3,8 +3,10 @@ package dns
 import (
 	"context"
 	"fmt"
-	"github.com/lightstep/collector-cluster-check/pkg/steps"
+
 	probing "github.com/prometheus-community/pro-bing"
+
+	"github.com/lightstep/collector-cluster-check/pkg/steps"
 )
 
 type Ping struct{}
