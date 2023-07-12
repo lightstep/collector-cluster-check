@@ -29,6 +29,9 @@ func (p PodRunning) Description() string {
 }
 
 func (p PodRunning) Run(ctx context.Context, deps *steps.Deps) steps.Results {
+	if deps.KubeClient == nil {
+		return steps.NewResults(p, steps.NewFailureResultWithHelp(nil, "kube client not set"))
+	}
 	operatorPodList, err := deps.KubeClient.CoreV1().Pods("").List(ctx, v1.ListOptions{
 		LabelSelector: p.LabelSelector,
 	})

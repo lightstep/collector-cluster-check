@@ -20,6 +20,9 @@ func (c Version) Description() string {
 }
 
 func (c Version) Run(ctx context.Context, deps *steps.Deps) steps.Results {
+	if deps.KubeClient == nil {
+		return steps.NewResults(c, steps.NewFailureResultWithHelp(nil, "client not set"))
+	}
 	version, err := deps.KubeClient.Discovery().ServerVersion()
 	if err != nil {
 		return steps.NewResults(c, steps.NewFailureResult(err))

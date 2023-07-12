@@ -28,6 +28,9 @@ func (c CrdExists) Description() string {
 }
 
 func (c CrdExists) Run(ctx context.Context, deps *steps.Deps) steps.Results {
+	if deps.CustomResourceClient == nil {
+		return steps.NewResults(c, steps.NewFailureResultWithHelp(nil, "custom resource client not set"))
+	}
 	retrievedCrd, err := deps.CustomResourceClient.ApiextensionsV1().CustomResourceDefinitions().Get(ctx, c.CrdName, metav1.GetOptions{})
 	if err != nil {
 		return steps.NewResults(c, steps.NewFailureResult(err))
