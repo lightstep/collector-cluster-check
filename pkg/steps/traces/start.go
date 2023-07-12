@@ -33,7 +33,7 @@ func (c StartTrace) Description() string {
 
 func (c StartTrace) Run(ctx context.Context, deps *steps.Deps) steps.Results {
 	_, span := deps.TracerProvider.Tracer(instrumentation).Start(ctx, operationName)
-	defer span.End()
+	span.End()
 	return steps.NewResults(c, steps.NewSuccessfulResult("started and ended trace"))
 }
 

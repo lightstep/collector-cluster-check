@@ -8,7 +8,14 @@ import (
 	"github.com/lightstep/collector-cluster-check/pkg/steps/dependencies"
 )
 
-type ShutdownMeter struct{}
+type ShutdownMeter struct {
+	endpoint string
+	insecure bool
+}
+
+func NewShutdownMeter(endpoint string, insecure bool) *ShutdownMeter {
+	return &ShutdownMeter{endpoint: endpoint, insecure: insecure}
+}
 
 var _ steps.Step = ShutdownMeter{}
 
@@ -21,7 +28,13 @@ func (c ShutdownMeter) Description() string {
 }
 
 func (c ShutdownMeter) Run(ctx context.Context, deps *steps.Deps) steps.Results {
-	err := deps.MeterProvider.Shutdown(ctx)
+	err := deps.MeterProvider.ForceFlush(ctx)
+	if err != nil && strings.Contains(err.Error(), "DeadlineExceeded") {
+		return steps.NewResults(c, steps.NewFailureResultWithHelp(err, "A connection couldn't be established, check firewall rules"))
+	} else if err != nil {
+		return steps.NewResults(c, steps.NewFailureResultWithHelp(err, "This could mean an incorrect access token was used"))
+	}
+	err = deps.MeterProvider.Shutdown(ctx)
 	if err != nil && strings.Contains(err.Error(), "DeadlineExceeded") {
 		return steps.NewResults(c, steps.NewFailureResultWithHelp(err, "A connection couldn't be established, check firewall rules"))
 	} else if err != nil {
@@ -31,5 +44,8 @@ func (c ShutdownMeter) Run(ctx context.Context, deps *steps.Deps) steps.Results 
 }
 
 func (c ShutdownMeter) Dependencies(config *steps.Config) []steps.Dependency {
+	if len(c.endpoint) > 0 {
+		return []steps.Dependency{dependencies.NewCreateMeterProvider(c.endpoint, c.insecure, config.Http, config.Token)}
+	}
 	return []steps.Dependency{dependencies.CreateMeterProviderFromConfig(config)}
 }
