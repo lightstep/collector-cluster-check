@@ -8,6 +8,8 @@ processors:
   batch:
 
 exporters:
+  logging:
+    verbosity: normal
   otlp:
     endpoint: ${DESTINATION}
     headers:
@@ -18,11 +20,11 @@ service:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlp]
+      exporters: [otlp, logging]
     metrics:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlp]
+      exporters: [otlp, logging]
     logs:
       receivers: [otlp]
       processors: [batch]
