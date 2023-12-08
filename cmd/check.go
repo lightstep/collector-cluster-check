@@ -125,9 +125,18 @@ var (
 	}
 )
 
+func getValidChecks() string {
+	toReturn := "check ["
+	for k := range availableChecks {
+		toReturn = toReturn + k + "|"
+	}
+	toReturn = toReturn + "]"
+	return toReturn
+}
+
 // checkCmd represents the check command
 var checkCmd = &cobra.Command{
-	Use:   "check [metrics|tracing|preflight|inflight|all]",
+	Use:   getValidChecks(),
 	Short: "Check can run one of multiple checks, use -h for more",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
