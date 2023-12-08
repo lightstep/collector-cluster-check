@@ -27,13 +27,16 @@ runs one of multiple checks, use -h for more
 
 ```
 Usage:
-  collector-cluster-check check [metrics|tracing|preflight|dns|all] [flags]
+  collector-cluster-check check [metrics|tracing|preflight|dns|inflight|all|] [flags]
 
 Flags:
       --accessToken string   access token to send data to Lightstep
+      --endpoint string      destination for OTLP data (default "ingest.lightstep.com:443")
   -h, --help                 help for check
       --http                 should telemetry be sent over http
+      --insecure             should telemetry be sent insecurely
       --kubeConfig string    (optional) absolute path to the kubeconfig file (default "/Users/jacob.aronoff/.kube/config")
+
 
 Global Flags:
       --config string   config file (default is $HOME/.collector-cluster-check.yaml)
