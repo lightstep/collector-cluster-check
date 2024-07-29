@@ -32,8 +32,11 @@ func (c *Check) Run(ctx context.Context, deps *Deps, conf *Config) ([]Results, [
 	var acc []Results
 	var depAcc []Results
 	for _, step := range c.steps {
-		depResults := c.initDeps(ctx, step.Dependencies(conf), deps, conf)
+		depResults, shouldContinue := c.initDeps(ctx, step.Dependencies(conf), deps, conf)
 		depAcc = append(depAcc, depResults...)
+		if !shouldContinue {
+			break
+		}
 		r := step.Run(ctx, deps)
 		acc = append(acc, r)
 		if r.ShouldStop() {
@@ -47,10 +50,13 @@ func (c *Check) Dependencies(conf *Config) []Dependency {
 	return nil
 }
 
-func (c *Check) initDeps(ctx context.Context, dependencies []Dependency, deps *Deps, conf *Config) []Results {
+func (c *Check) initDeps(ctx context.Context, dependencies []Dependency, deps *Deps, conf *Config) ([]Results, bool) {
 	var results []Results
 	for _, dep := range dependencies {
-		depResults := c.initDeps(ctx, dep.Dependencies(conf), deps, conf)
+		depResults, shouldContinue := c.initDeps(ctx, dep.Dependencies(conf), deps, conf)
+		if !shouldContinue {
+			return depResults, shouldContinue
+		}
 		results = append(results, depResults...)
 		if _, ok := c.depMap[dep.Name()]; ok {
 			continue
@@ -58,10 +64,10 @@ func (c *Check) initDeps(ctx context.Context, dependencies []Dependency, deps *D
 		opt, r := dep.Run(ctx, deps)
 		results = append(results, NewResults(dep, r))
 		if !r.Successful() && !r.ShouldContinue() {
-			return results
+			return results, false
 		}
 		c.depMap[dep.Name()] = dep
 		opt(deps)
 	}
-	return results
+	return results, true
 }

@@ -14,7 +14,7 @@ const (
 )
 
 var (
-	ColRes = schema.GroupVersionResource{Group: "opentelemetry.io", Version: "v1alpha1", Resource: "opentelemetrycollectors"}
+	ColRes = schema.GroupVersionResource{Group: "opentelemetry.io", Version: "v1beta1", Resource: "opentelemetrycollectors"}
 	PodRes = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"}
 )
 
