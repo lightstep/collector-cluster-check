@@ -1,14 +1,14 @@
 receivers:
   otlp:
     protocols:
-      grpc:
-      http:
+      grpc: {}
+      http: {}
 
 processors:
-  batch:
+  batch: {}
 
 exporters:
-  logging:
+  debug:
     verbosity: normal
   otlp:
     endpoint: ${DESTINATION}
@@ -20,11 +20,11 @@ service:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlp, logging]
+      exporters: [otlp, debug]
     metrics:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlp, logging]
+      exporters: [otlp, debug]
     logs:
       receivers: [otlp]
       processors: [batch]

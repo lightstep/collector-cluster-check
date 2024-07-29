@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 
+	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/lightstep/collector-cluster-check/pkg/steps"
@@ -40,9 +41,15 @@ func (c CollectorConfig) Description() string {
 }
 
 func (c CollectorConfig) Run(ctx context.Context, deps *steps.Deps) (steps.Option, steps.Result) {
+	config := map[string]interface{}{}
+	err := yaml.Unmarshal([]byte(collectorConfig), config)
+	if err != nil {
+		return nil, steps.Result{}
+	}
+
 	col := &unstructured.Unstructured{
 		Object: map[string]interface{}{
-			"apiVersion": "opentelemetry.io/v1alpha1",
+			"apiVersion": "opentelemetry.io/v1beta1",
 			"kind":       "OpenTelemetryCollector",
 			"metadata": map[string]interface{}{
 				"name":   "test-col",
@@ -51,7 +58,7 @@ func (c CollectorConfig) Run(ctx context.Context, deps *steps.Deps) (steps.Optio
 			"spec": map[string]interface{}{
 				"replicas": 1,
 				"mode":     "deployment",
-				"config":   collectorConfig,
+				"config":   config,
 				"env": []map[string]interface{}{
 					{
 						"name":  "LS_TOKEN",
